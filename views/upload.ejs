@@ -20,16 +20,23 @@
                         <input type="text" id="title" name="title" placeholder="e.g. Memory Management" required>
                     </div>
                     <div class="form-group">
-                        <label for="subject">Subject / Category</label>
-                        <input type="text" id="subject" name="subject" placeholder="e.g. Operating Systems" list="subject-list" required>
-                        <datalist id="subject-list">
-                            <% 
-                                const subjects = [...new Set(allConcepts.map(c => c.subject))];
-                                subjects.forEach(s => { 
-                            %>
-                                <option value="<%= s %>">
+                        <label for="subject-select">Subject / Category</label>
+                        <select id="subject-select" onchange="toggleSubjectInput(this.value)">
+                            <option value="">-- Select Subject --</option>
+                            <% allSubjects.forEach(s => { %>
+                                <option value="<%= s %>"><%= s %></option>
                             <% }) %>
-                        </datalist>
+                            <option value="new" style="font-weight: 800; color: var(--accent-primary);">+ Add New Subject</option>
+                        </select>
+                        
+                        <!-- Hidden by default, shown if "new" is selected -->
+                        <div id="new-subject-container" style="display: none; margin-top: 1rem;">
+                            <input type="text" id="subject-new" placeholder="Enter new subject name">
+                            <p class="input-hint">This will be saved for future use.</p>
+                        </div>
+
+                        <!-- The actual field sent to the server -->
+                        <input type="hidden" name="subject" id="subject-final" required>
                     </div>
                 </div>
 
@@ -101,6 +108,29 @@
         
         // Initialize
         switchTab('upload-tab', document.querySelector('.tab'));
+
+        function toggleSubjectInput(val) {
+            const container = document.getElementById('new-subject-container');
+            const finalInput = document.getElementById('subject-final');
+            const newInput = document.getElementById('subject-new');
+            
+            if (val === 'new') {
+                container.style.display = 'block';
+                finalInput.value = ''; // Clear so validation catches it if empty
+                newInput.focus();
+                
+                newInput.oninput = () => {
+                    finalInput.value = newInput.value;
+                };
+            } else {
+                container.style.display = 'none';
+                finalInput.value = val;
+                newInput.oninput = null;
+            }
+        }
+        
+        // Initial sync
+        toggleSubjectInput(document.getElementById('subject-select').value);
 
         function updateFileName() {
             const input = document.getElementById('conceptFile');

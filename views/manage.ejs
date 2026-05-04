@@ -23,16 +23,19 @@
                             <input type="text" id="title" name="title" value="<%= concept.title %>" required>
                         </div>
                         <div class="form-group">
-                            <label for="subject">Subject</label>
-                            <input type="text" id="subject" name="subject" value="<%= concept.subject %>" list="subject-list" required>
-                            <datalist id="subject-list">
-                                <% 
-                                    const subjects = [...new Set(allConcepts.map(c => c.subject))];
-                                    subjects.forEach(s => { 
-                                %>
-                                    <option value="<%= s %>">
+                            <label for="subject-select">Subject</label>
+                            <select id="subject-select" onchange="toggleSubjectInput(this.value)">
+                                <% allSubjects.forEach(s => { %>
+                                    <option value="<%= s %>" <%= concept.subject === s ? 'selected' : '' %>><%= s %></option>
                                 <% }) %>
-                            </datalist>
+                                <option value="new" style="font-weight: 800; color: var(--accent-primary);">+ Add New Subject</option>
+                            </select>
+
+                            <div id="new-subject-container" style="display: none; margin-top: 1rem;">
+                                <input type="text" id="subject-new" placeholder="Enter new subject name">
+                            </div>
+
+                            <input type="hidden" name="subject" id="subject-final" value="<%= concept.subject %>" required>
                         </div>
                     </div>
 
@@ -95,6 +98,28 @@
     </main>
 
     <script>
+        function toggleSubjectInput(val) {
+            const container = document.getElementById('new-subject-container');
+            const finalInput = document.getElementById('subject-final');
+            const newInput = document.getElementById('subject-new');
+            
+            if (val === 'new') {
+                container.style.display = 'block';
+                newInput.focus();
+                
+                newInput.oninput = () => {
+                    finalInput.value = newInput.value;
+                };
+            } else {
+                container.style.display = 'none';
+                finalInput.value = val;
+                newInput.oninput = null;
+            }
+        }
+        
+        // Initial sync
+        toggleSubjectInput(document.getElementById('subject-select').value);
+
         function updateFileName() {
             const input = document.getElementById('conceptFile');
             const display = document.getElementById('file-name-display');

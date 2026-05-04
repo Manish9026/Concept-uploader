@@ -46,6 +46,7 @@ const upload = multer({
 });
 
 const DATA_PATH = path.join(__dirname, 'data', 'concepts.json');
+const SUBJECTS_PATH = path.join(__dirname, 'data', 'subjects.json');
 
 // Helper to read data
 async function getConcepts() {
@@ -60,6 +61,26 @@ async function getConcepts() {
 // Helper to write data
 async function saveConcepts(concepts) {
     await fs.writeJson(DATA_PATH, concepts, { spaces: 2 });
+}
+
+// Helper to read subjects
+async function getSubjects() {
+    try {
+        if (!await fs.exists(SUBJECTS_PATH)) {
+            const concepts = await getConcepts();
+            const initial = [...new Set(concepts.map(c => c.subject))];
+            await fs.writeJson(SUBJECTS_PATH, initial);
+            return initial;
+        }
+        return await fs.readJson(SUBJECTS_PATH);
+    } catch (err) {
+        return [];
+    }
+}
+
+// Helper to save subjects
+async function saveSubjects(subjects) {
+    await fs.writeJson(SUBJECTS_PATH, subjects, { spaces: 2 });
 }
 
 // Routes
@@ -88,10 +109,12 @@ app.get('/', async (req, res) => {
         return acc;
     }, {});
 
+    const allSubjects = await getSubjects();
     res.render('index', { 
         subjects: grouped, 
         sortBy, 
         allConcepts: concepts,
+        allSubjects,
         seo: {
             title: 'Knowledge Repository',
             description: 'A premium vault for educational concepts, computer science guides, and interactive study materials.',
@@ -103,8 +126,10 @@ app.get('/', async (req, res) => {
 
 app.get('/upload', async (req, res) => {
     const concepts = await getConcepts();
+    const allSubjects = await getSubjects();
     res.render('upload', { 
         allConcepts: concepts,
+        allSubjects,
         seo: {
             title: 'Contribute New Concept',
             description: 'Upload and organize new educational HTML concepts into the Concept Vault.',
@@ -129,6 +154,14 @@ app.post('/upload', upload.single('conceptFile'), async (req, res) => {
         }
 
         const concepts = await getConcepts();
+        const allSubjects = await getSubjects();
+        
+        // Add new subject to persistent list if not exists
+        if (subject && !allSubjects.includes(subject)) {
+            allSubjects.push(subject);
+            await saveSubjects(allSubjects);
+        }
+
         const newConcept = {
             id: Date.now(),
             title,
@@ -152,11 +185,13 @@ app.post('/upload', upload.single('conceptFile'), async (req, res) => {
 // Manage Page
 app.get('/concept/:id', async (req, res) => {
     const concepts = await getConcepts();
+    const allSubjects = await getSubjects();
     const concept = concepts.find(c => c.id == req.params.id);
     if (!concept) return res.status(404).send('Concept not found');
     res.render('manage', { 
         concept, 
         allConcepts: concepts,
+        allSubjects,
         seo: {
             title: `Manage: ${concept.title}`,
             description: `Update and manage the content for ${concept.title} in the Concept Vault.`,
@@ -170,6 +205,14 @@ app.get('/concept/:id', async (req, res) => {
 app.post('/concept/:id/update', async (req, res) => {
     const { title, subject, sortOrder, parentId } = req.body;
     let concepts = await getConcepts();
+    const allSubjects = await getSubjects();
+
+    // Add new subject to persistent list if not exists
+    if (subject && !allSubjects.includes(subject)) {
+        allSubjects.push(subject);
+        await saveSubjects(allSubjects);
+    }
+    
     const index = concepts.findIndex(c => c.id == req.params.id);
     if (index === -1) return res.status(404).send('Concept not found');
     
