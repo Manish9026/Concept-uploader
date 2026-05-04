@@ -1,35 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <%- include('partials/head') %>
-    <!-- Monaco Editor Loader -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editing: <%= concept.title %> | Concept Vault</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+
+    <!-- Monaco MUST load before Lucide to avoid AMD require conflict -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+
+    <style>
+        html, body { height: 100%; margin: 0; overflow: hidden; background: #1e1e1e; }
+        .editor-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            height: 44px; padding: 0 1rem;
+            background: #252526; border-bottom: 1px solid #3c3c3c;
+            font-family: 'Outfit', sans-serif;
+        }
+        .editor-bar-left { display: flex; align-items: center; gap: 0.8rem; }
+        .editor-bar-right { display: flex; align-items: center; gap: 0.8rem; }
+        .back-btn {
+            padding: 0.25rem 0.7rem; border-radius: 4px; font-size: 0.8rem;
+            background: transparent; border: 1px solid #555;
+            color: #ccc; text-decoration: none; transition: 0.15s;
+        }
+        .back-btn:hover { background: #3c3c3c; color: #fff; }
+        .file-name { font-size: 0.85rem; font-weight: 600; color: #e0e0e0; }
+        .file-ext {
+            font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 3px;
+            background: #264f78; color: #9cdcfe; font-family: monospace;
+        }
+        .dot-sep { color: #555; font-size: 0.6rem; }
+        #save-status { font-size: 0.75rem; color: #888; }
+        .save-btn {
+            padding: 0.25rem 0.9rem; border-radius: 4px; border: none; cursor: pointer;
+            font-size: 0.8rem; font-weight: 600; color: #fff;
+            background: #0e639c; transition: 0.15s;
+        }
+        .save-btn:hover { background: #1177bb; }
+        #monaco-container { width: 100%; height: calc(100vh - 44px); }
+    </style>
 </head>
-<body class="editor-page-body">
-    <div class="editor-header">
-        <div style="display: flex; align-items: center; gap: 1rem;">
-            <a href="/concept/<%= concept._id %>" class="btn btn-outline" style="padding: 0.5rem 1rem;">&larr; Exit</a>
-            <h2 style="font-size: 1.2rem; margin: 0;"><%= concept.title %> <span style="color: var(--text-secondary); font-weight: 400; font-size: 0.9rem;">(<%= concept.originalName %>)</span></h2>
+<body>
+    <div class="editor-bar">
+        <div class="editor-bar-left">
+            <a href="/concept/<%= concept._id %>" class="back-btn">← Exit</a>
+            <span class="dot-sep">|</span>
+            <span class="file-name"><%= concept.title %></span>
+            <span class="file-ext"><%= concept.originalName %></span>
         </div>
-        <div style="display: flex; gap: 1rem;">
-            <span id="save-status" style="color: var(--text-secondary); font-size: 0.9rem; align-self: center; margin-right: 1rem;"></span>
-            <button onclick="saveContent()" class="btn btn-primary" style="padding: 0.5rem 2rem;">Save File</button>
+        <div class="editor-bar-right">
+            <span id="save-status"></span>
+            <button class="save-btn" onclick="saveContent()">💾 Save</button>
         </div>
     </div>
 
-    <div class="editor-container">
-        <div id="monaco-container"></div>
-    </div>
+    <div id="monaco-container"></div>
 
-    <!-- Hidden element to safely store content -->
-    <textarea id="raw-content" style="display: none;"><%= content %></textarea>
+    <textarea id="raw-content" style="display:none;"><%= content %></textarea>
 
     <script>
-        let editor;
+        let editor, originalContent = '', isDirty = false;
+
         require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
-        
-        let originalContent = '';
-        let isDirty = false;
 
         require(['vs/editor/editor.main'], function() {
             originalContent = document.getElementById('raw-content').value;
@@ -40,53 +76,45 @@
                 automaticLayout: true,
                 fontSize: 14,
                 minimap: { enabled: true },
-                padding: { top: 20 }
+                padding: { top: 12 },
+                scrollBeyondLastLine: false,
+                wordWrap: 'on',
+                bracketPairColorization: { enabled: true },
+                renderLineHighlight: 'line',
+                cursorBlinking: 'smooth',
+                smoothScrolling: true,
+                mouseWheelZoom: true
             });
 
-            // Detect changes
             editor.onDidChangeModelContent(() => {
                 isDirty = editor.getValue() !== originalContent;
             });
 
-            // Keyboard shortcut for saving (Ctrl+S / Cmd+S)
-            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, function() {
-                saveContent();
-            });
+            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => saveContent());
         });
 
-        // Warn before leaving with unsaved changes
         window.addEventListener('beforeunload', (e) => {
-            if (isDirty) {
-                e.preventDefault();
-                e.returnValue = ''; // Trigger browser confirmation dialog
-            }
+            if (isDirty) { e.preventDefault(); e.returnValue = ''; }
         });
 
         async function saveContent() {
             const status = document.getElementById('save-status');
-            status.innerText = 'Saving...';
-            
-            const content = editor.getValue();
+            status.textContent = 'Saving…'; status.style.color = '#888';
             try {
-                const response = await fetch('/concept/<%= concept._id %>/save', {
+                const res = await fetch('/concept/<%= concept._id %>/save', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content })
+                    body: JSON.stringify({ content: editor.getValue() })
                 });
-                
-                if (response.ok) {
-                    status.innerText = 'Last saved: ' + new Date().toLocaleTimeString();
-                    status.style.color = '#22c55e';
-                    originalContent = content; // Update original content to current
-                    isDirty = false;
+                if (res.ok) {
+                    originalContent = editor.getValue(); isDirty = false;
+                    status.textContent = '✓ Saved ' + new Date().toLocaleTimeString();
+                    status.style.color = '#4ec9b0';
                 } else {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Save failed');
+                    const d = await res.json(); throw new Error(d.error || 'Failed');
                 }
             } catch (err) {
-                console.error('Save error:', err);
-                status.innerText = 'Error: ' + err.message;
-                status.style.color = '#ef4444';
+                status.textContent = '✗ ' + err.message; status.style.color = '#f14c4c';
             }
         }
     </script>

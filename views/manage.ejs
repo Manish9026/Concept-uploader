@@ -6,21 +6,17 @@
 <body>
     <nav class="navbar">
         <a href="/" class="nav-logo">Concept Vault</a>
-        
         <div class="menu-toggle" onclick="toggleMenu()">
-            <span></span>
-            <span></span>
-            <span></span>
+            <span></span><span></span><span></span>
         </div>
-
         <div class="nav-links" id="navLinks">
-            <a href="/" class="btn btn-outline nav-btn">&larr; Back to Library</a>
+            <a href="/" class="btn btn-outline nav-btn"><i data-lucide="arrow-left"></i> Library</a>
         </div>
     </nav>
 
     <main class="container">
         <div class="manage-grid animate-fade-in">
-            <!-- Left Side: Basic Info -->
+            <!-- Left: Concept Details -->
             <div class="manage-card">
                 <h2>Concept Details</h2>
                 <form action="/concept/<%= concept._id %>/update" method="POST">
@@ -28,82 +24,81 @@
                         <label for="title">Title</label>
                         <input type="text" id="title" name="title" value="<%= concept.title %>" required>
                     </div>
-
                     <div class="form-group">
-                        <label for="subject-select">Subject / Category</label>
+                        <label for="subject-select">Subject</label>
                         <select id="subject-select" onchange="toggleSubjectInput(this.value)">
                             <% allSubjects.forEach(s => { %>
                                 <option value="<%= s %>" <%= concept.subject === s ? 'selected' : '' %>><%= s %></option>
                             <% }) %>
-                            <option value="new" style="font-weight: 800; color: var(--accent-primary);">+ Add New Subject</option>
+                            <option value="new">+ New Subject</option>
                         </select>
-
-                        <div id="new-subject-container" style="display: none; margin-top: 1rem;">
-                            <input type="text" id="subject-new" placeholder="Enter new subject name">
+                        <div id="new-subject-container" style="display:none;margin-top:0.6rem;">
+                            <input type="text" id="subject-new" placeholder="New subject name">
                         </div>
-
                         <input type="hidden" name="subject" id="subject-final" value="<%= concept.subject %>" required>
                     </div>
-
                     <div class="form-group">
                         <label for="sortOrder">Sort Order</label>
                         <input type="number" id="sortOrder" name="sortOrder" value="<%= concept.sortOrder %>">
                     </div>
-
                     <div class="form-group">
                         <label for="parentId">Parent Concept</label>
                         <select id="parentId" name="parentId">
-                            <option value="">-- No Parent --</option>
+                            <option value="">-- None --</option>
                             <% allConcepts.forEach(c => { %>
-                                <% if (c._id.toString() != concept._id.toString()) { %>
-                                    <option value="<%= c._id %>" <%= concept.parentId && concept.parentId.toString() == c._id.toString() ? 'selected' : '' %>>
+                                <% if (c._id.toString() !== concept._id.toString()) { %>
+                                    <option value="<%= c._id %>" <%= concept.parentId && concept.parentId.toString() === c._id.toString() ? 'selected' : '' %>>
                                         <%= c.subject %>: <%= c.title %>
                                     </option>
                                 <% } %>
                             <% }) %>
                         </select>
                     </div>
-
-                    <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">Save Changes</button>
+                    <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">Save Details</button>
                 </form>
-
-                <div class="danger-zone" style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid rgba(255, 255, 255, 0.05);">
-                    <form action="/concept/<%= concept._id %>/delete" method="POST" onsubmit="return confirm('Are you sure? This cannot be undone.')">
-                        <button type="submit" class="btn" style="width: 100%; justify-content: center; background: rgba(244, 63, 94, 0.1); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.2);">
-                            Delete Concept
-                        </button>
-                    </form>
-                </div>
             </div>
 
-            <!-- Right Side: Content Actions -->
+            <!-- Right: Content Actions -->
             <div class="manage-card">
                 <h2>Content Management</h2>
-                
-                <div style="margin-bottom: 2.5rem;">
-                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Directly modify the HTML source code using the high-performance Monaco Editor.</p>
-                    <a href="/concept/<%= concept._id %>/edit" class="btn btn-primary" style="width: 100%; justify-content: center; background: #10b981;">
-                        Open Visual Editor <i data-lucide="edit-3" style="margin-left: 0.5rem; width: 18px; height: 18px;"></i>
+
+                <!-- Open Editor Button -->
+                <div style="margin-bottom:1.5rem;">
+                    <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:1rem;">
+                        Edit the HTML source code using the dedicated Monaco Editor.
+                    </p>
+                    <a href="/concept/<%= concept._id %>/edit" class="btn btn-primary" style="width:100%;justify-content:center;background:#10b981;">
+                        <i data-lucide="code-2"></i> Open Code Editor
                     </a>
                 </div>
 
-                <div style="padding-top: 2.5rem; border-top: 1px solid var(--glass-border);">
-                    <h3>Replace Source File</h3>
-                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">Current file: <code><%= concept.originalName %></code></p>
-                    
-                    <form action="/concept/<%= concept._id %>/replace" method="POST" enctype="multipart/form-data">
-                        <div class="form-group">
-                            <input type="file" id="conceptFile" name="conceptFile" accept=".html" required onchange="updateFileName()">
-                        </div>
-                        <button type="submit" class="btn btn-outline" style="width: 100%; justify-content: center;">
-                            Upload & Replace <i data-lucide="upload-cloud" style="margin-left: 0.5rem; width: 18px; height: 18px;"></i>
+                <!-- Upload File -->
+                <div style="padding-top:1.5rem;border-top:1px solid var(--glass-border);margin-bottom:1.5rem;">
+                    <label style="margin-bottom:0.6rem;">Replace with HTML File</label>
+                    <p style="color:var(--text-secondary);font-size:0.8rem;margin-bottom:0.8rem;">
+                        Current: <code style="background:rgba(255,255,255,0.06);padding:0.15rem 0.4rem;border-radius:4px;font-size:0.75rem;"><%= concept.originalName %></code>
+                    </p>
+                    <form action="/concept/<%= concept._id %>/replace" method="POST" enctype="multipart/form-data" style="display:flex;gap:0.5rem;">
+                        <input type="file" name="conceptFile" accept=".html" required style="flex:1;">
+                        <button type="submit" class="btn btn-outline" style="white-space:nowrap;">
+                            <i data-lucide="upload"></i> Replace
                         </button>
                     </form>
                 </div>
 
-                <div style="margin-top: 2.5rem; padding: 1.5rem; background: rgba(99, 102, 241, 0.05); border-radius: 16px; border: 1px dashed rgba(99, 102, 241, 0.2);">
-                    <h4 style="margin-bottom: 0.5rem; color: var(--accent-primary);">Public URL</h4>
-                    <p style="font-size: 0.85rem; word-break: break-all; opacity: 0.7;">https://nimcet.erpsaas.in/view/<%= concept._id %></p>
+                <!-- Public URL -->
+                <div style="padding:1rem;background:rgba(99,102,241,0.04);border-radius:10px;border:1px dashed rgba(99,102,241,0.15);margin-bottom:1.5rem;">
+                    <div style="font-size:0.75rem;font-weight:600;color:var(--accent-primary);margin-bottom:0.3rem;">Public URL</div>
+                    <p style="font-size:0.8rem;word-break:break-all;opacity:0.6;">https://nimcet.erpsaas.in/view/<%= concept._id %></p>
+                </div>
+
+                <!-- Delete -->
+                <div style="padding-top:1.5rem;border-top:1px solid var(--glass-border);">
+                    <form action="/concept/<%= concept._id %>/delete" method="POST" onsubmit="return confirm('Delete this concept permanently?')">
+                        <button type="submit" class="btn" style="width:100%;justify-content:center;background:rgba(244,63,94,0.08);color:#f43f5e;border:1px solid rgba(244,63,94,0.15);">
+                            <i data-lucide="trash-2"></i> Delete Concept
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -112,37 +107,22 @@
     <script>
         function toggleMenu() {
             document.getElementById('navLinks').classList.toggle('active');
-            document.querySelector('.menu-toggle').classList.toggle('active');
         }
-
-        // Initialize Lucide Icons
-        lucide.createIcons();
 
         function toggleSubjectInput(val) {
-            const container = document.getElementById('new-subject-container');
-            const finalInput = document.getElementById('subject-final');
-            const newInput = document.getElementById('subject-new');
-            
+            const c = document.getElementById('new-subject-container');
+            const f = document.getElementById('subject-final');
+            const n = document.getElementById('subject-new');
             if (val === 'new') {
-                container.style.display = 'block';
-                newInput.focus();
-                
-                newInput.oninput = () => {
-                    finalInput.value = newInput.value;
-                };
+                c.style.display = 'block'; n.focus();
+                n.oninput = () => { f.value = n.value; };
             } else {
-                container.style.display = 'none';
-                finalInput.value = val;
-                newInput.oninput = null;
+                c.style.display = 'none'; f.value = val; n.oninput = null;
             }
         }
-        
-        // Initial sync
         toggleSubjectInput(document.getElementById('subject-select').value);
 
-        function updateFileName() {
-            // Placeholder for filename update logic if needed
-        }
+        lucide.createIcons();
     </script>
 </body>
 </html>

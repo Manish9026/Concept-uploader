@@ -6,22 +6,18 @@
 <body>
     <nav class="navbar">
         <a href="/" class="nav-logo">Concept Vault</a>
-        
         <div class="menu-toggle" onclick="toggleMenu()">
-            <span></span>
-            <span></span>
-            <span></span>
+            <span></span><span></span><span></span>
         </div>
-
         <div class="nav-links" id="navLinks">
-            <div class="controls-bar" style="margin-bottom: 0; display: flex; gap: 0.5rem;">
-                <select id="subject-filter" class="sort-select" onchange="filterBySubject(this.value)" style="width: auto;">
+            <div class="controls-bar" style="display:flex;gap:0.5rem;">
+                <select id="subject-filter" class="sort-select" onchange="filterBySubject(this.value)">
                     <option value="all">All Subjects</option>
                     <% allSubjects.forEach(s => { %>
                         <option value="<%= s %>"><%= s %></option>
                     <% }) %>
                 </select>
-                <select id="sort" class="sort-select" onchange="window.location.href='/?sort='+this.value" style="width: auto;">
+                <select id="sort" class="sort-select" onchange="window.location.href='/?sort='+this.value">
                     <option value="order-asc" <%= sortBy === 'order-asc' ? 'selected' : '' %>>Sort Order</option>
                     <option value="date-desc" <%= sortBy === 'date-desc' ? 'selected' : '' %>>Latest First</option>
                     <option value="title-asc" <%= sortBy === 'title-asc' ? 'selected' : '' %>>Title A-Z</option>
@@ -34,78 +30,60 @@
     <main class="container">
         <% if (Object.keys(subjects).length === 0) { %>
             <div class="empty-state animate-fade-in">
-                <h2>No concepts found yet</h2>
-                <p>Start by uploading your first HTML concept file.</p>
+                <h2>No concepts yet</h2>
+                <p>Upload your first HTML concept file to get started.</p>
                 <br>
                 <a href="/upload" class="btn btn-outline">Go to Upload</a>
             </div>
         <% } else { %>
             <% for (let subject in subjects) { %>
-                <section class="subject-section animate-fade-in" id="section-<%= subject.replace(/\s+/g, '-').toLowerCase() %>" data-subject="<%= subject %>">
-                    <div class="subject-header">
-                        <h2 class="subject-title"><%= subject %></h2>
-                    </div>
-                    
-                    <div class="concept-list" style="display: block;">
-<% 
-    function renderConcept(concept, allInSubject, level = 0) {
+                <section class="subject-section animate-fade-in" data-subject="<%= subject %>">
+                    <h2 class="subject-title"><%= subject %></h2>
+                    <div class="tree-list">
+<%
+    function renderNode(concept, allInSubject, depth) {
         const children = allInSubject.filter(c => c.parentId && c.parentId.toString() === concept._id.toString());
+        const hasChildren = children.length > 0;
 %>
-    <div class="tree-node level-<%= level %> animate-fade-in">
-        <div class="concept-group">
-            <div class="concept-item">
-                <div class="concept-info" style="display: flex; align-items: center; gap: 1rem; flex: 1;">
-                    <% if (children.length > 0) { %>
-                        <div class="tree-toggle active" onclick="toggleTree('<%= concept._id %>')" style="min-width: 24px; display: flex; align-items: center; justify-content: center;">
-                            <i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i>
+                        <div class="tree-row depth-<%= depth %>">
+                            <div class="tree-rail"><div class="tree-dot"></div></div>
+                            <div class="tree-arm"></div>
+                            <div class="tree-card">
+                                <div class="card-header">
+                                    <% if (hasChildren) { %>
+                                        <div class="toggle-btn open" onclick="toggleNode(this, '<%= concept._id %>')">
+                                            <i data-lucide="chevron-right"></i>
+                                        </div>
+                                    <% } else { %>
+                                        <div class="toggle-spacer"></div>
+                                    <% } %>
+                                    <div style="flex:1;min-width:0;">
+                                        <div class="card-title"><%= concept.title %></div>
+                                        <div class="card-meta">
+                                            <span><i data-lucide="calendar"></i> <%= new Date(concept.uploadDate).toLocaleDateString() %></span>
+                                            <% if (concept.sortOrder) { %>
+                                                <span><i data-lucide="hash"></i> <%= concept.sortOrder %></span>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                    <div class="card-actions">
+                                        <a href="/view/<%= concept._id %>" target="_blank" class="btn-icon" title="View"><i data-lucide="eye"></i></a>
+                                        <a href="/concept/<%= concept._id %>" class="btn-icon" title="Manage"><i data-lucide="settings"></i></a>
+                                    </div>
+                                </div>
+                                <% if (hasChildren) { %>
+                                    <div class="tree-children" id="children-<%= concept._id %>">
+                                        <div class="tree-list" style="margin-top:4px;">
+                                            <% children.forEach(child => { renderNode(child, allInSubject, depth + 1); }) %>
+                                        </div>
+                                    </div>
+                                <% } %>
+                            </div>
                         </div>
-                    <% } else { %>
-                        <div style="min-width: 24px; display: flex; align-items: center; justify-content: center; opacity: 0.3;">
-                            <i data-lucide="minus" style="width: 12px; height: 12px;"></i>
-                        </div>
-                    <% } %>
-                    
-                    <div style="flex: 1;">
-                        <h3 style="font-size: 1.1rem; font-weight: 600;"><%= concept.title %></h3>
-                        <div class="concept-meta" style="display: flex; gap: 1rem; margin-top: 0.2rem;">
-                            <span style="display: flex; align-items: center; gap: 0.3rem;">
-                                <i data-lucide="calendar" style="width: 12px; height: 12px;"></i>
-                                <%= new Date(concept.uploadDate).toLocaleDateString() %>
-                            </span>
-                            <% if (concept.sortOrder) { %>
-                                <span style="display: flex; align-items: center; gap: 0.3rem;">
-                                    <i data-lucide="list-ordered" style="width: 12px; height: 12px;"></i>
-                                    #<%= concept.sortOrder %>
-                                </span>
-                            <% } %>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="concept-actions">
-                    <a href="/view/<%= concept._id %>" target="_blank" class="btn-icon" title="View Concept">
-                        <i data-lucide="eye" style="width: 18px; height: 18px;"></i>
-                    </a>
-                    <a href="/concept/<%= concept._id %>" class="btn-icon" title="Manage Settings">
-                        <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
-                    </a>
-                </div>
-            </div>
-            
-            <% if (children.length > 0) { %>
-                <div class="nested-wrapper" id="children-<%= concept._id %>">
-                    <% children.forEach(child => { %>
-                        <% renderConcept(child, allInSubject, level + 1) %>
-                    <% }) %>
-                </div>
-            <% } %>
-        </div>
-    </div>
-<% 
+<%
     }
-    const allConceptsInSubject = subjects[subject];
-    const topLevel = allConceptsInSubject.filter(c => !c.parentId);
-    topLevel.forEach(concept => renderConcept(concept, allConceptsInSubject));
+    const pool = subjects[subject];
+    pool.filter(c => !c.parentId).forEach(c => renderNode(c, pool, 0));
 %>
                     </div>
                 </section>
@@ -113,36 +91,28 @@
         <% } %>
     </main>
 
+    <footer class="site-footer">
+        <p>&copy; 2026 Concept Vault. Designed with &hearts; for learning.</p>
+    </footer>
+
     <script>
-        function toggleTree(id) {
-            const wrapper = document.getElementById('children-' + id);
-            const toggle = event.currentTarget;
-            wrapper.classList.toggle('collapsed');
-            toggle.classList.toggle('active');
+        function toggleNode(btn, id) {
+            const children = document.getElementById('children-' + id);
+            children.classList.toggle('collapsed');
+            btn.classList.toggle('open');
         }
 
         function toggleMenu() {
             document.getElementById('navLinks').classList.toggle('active');
-            document.querySelector('.menu-toggle').classList.toggle('active');
         }
-
-        // Initialize Lucide Icons
-        lucide.createIcons();
 
         function filterBySubject(subject) {
-            const sections = document.querySelectorAll('.subject-section');
-            sections.forEach(section => {
-                if (subject === 'all' || section.getAttribute('data-subject') === subject) {
-                    section.style.display = 'block';
-                } else {
-                    section.style.display = 'none';
-                }
+            document.querySelectorAll('.subject-section').forEach(s => {
+                s.style.display = (subject === 'all' || s.dataset.subject === subject) ? '' : 'none';
             });
         }
-    </script>
 
-    <footer class="container" style="text-align: center; padding: 4rem 0; color: var(--text-secondary); font-size: 0.9rem;">
-        <p>&copy; 2026 Concept Vault. Designed with &hearts; for learning.</p>
-    </footer>
+        lucide.createIcons();
+    </script>
 </body>
 </html>
