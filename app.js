@@ -80,12 +80,30 @@ app.get('/', async (req, res) => {
         return acc;
     }, {});
 
-    res.render('index', { subjects: grouped, sortBy, allConcepts: concepts });
+    res.render('index', { 
+        subjects: grouped, 
+        sortBy, 
+        allConcepts: concepts,
+        seo: {
+            title: 'Knowledge Repository',
+            description: 'A premium vault for educational concepts, computer science guides, and interactive study materials.',
+            keywords: 'NIMCET, computer science, concept vault, educational resources, software guides',
+            path: '/'
+        }
+    });
 });
 
 app.get('/upload', async (req, res) => {
     const concepts = await getConcepts();
-    res.render('upload', { allConcepts: concepts });
+    res.render('upload', { 
+        allConcepts: concepts,
+        seo: {
+            title: 'Contribute New Concept',
+            description: 'Upload and organize new educational HTML concepts into the Concept Vault.',
+            keywords: 'upload concept, contribute education, html concept uploader',
+            path: '/upload'
+        }
+    });
 });
 
 app.post('/upload', upload.single('conceptFile'), async (req, res) => {
@@ -128,7 +146,16 @@ app.get('/concept/:id', async (req, res) => {
     const concepts = await getConcepts();
     const concept = concepts.find(c => c.id == req.params.id);
     if (!concept) return res.status(404).send('Concept not found');
-    res.render('manage', { concept, allConcepts: concepts });
+    res.render('manage', { 
+        concept, 
+        allConcepts: concepts,
+        seo: {
+            title: `Manage: ${concept.title}`,
+            description: `Update and manage the content for ${concept.title} in the Concept Vault.`,
+            keywords: `manage ${concept.title}, edit concept, update study material`,
+            path: `/concept/${concept.id}`
+        }
+    });
 });
 
 // Update Metadata
@@ -173,7 +200,16 @@ app.get('/concept/:id/edit', async (req, res) => {
     
     const filePath = path.join(__dirname, 'uploads', concept.filename);
     const content = await fs.readFile(filePath, 'utf-8');
-    res.render('editor', { concept, content });
+    res.render('editor', { 
+        concept, 
+        content,
+        seo: {
+            title: `Editing: ${concept.title}`,
+            description: `Directly edit the HTML source for ${concept.title} using the Monaco Editor.`,
+            keywords: 'html editor, monaco editor, online code editor',
+            path: `/concept/${concept.id}/edit`
+        }
+    });
 });
 
 // Save from Editor
@@ -200,6 +236,30 @@ app.post('/concept/:id/delete', async (req, res) => {
     concepts.splice(index, 1);
     await saveConcepts(concepts);
     res.redirect('/');
+});
+
+// Sitemap
+app.get('/sitemap.xml', async (req, res) => {
+    const concepts = await getConcepts();
+    const baseUrl = 'https://nimcet.erpsaas.in';
+    
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+        <url><loc>${baseUrl}/</loc><priority>1.0</priority></url>
+        <url><loc>${baseUrl}/upload</loc><priority>0.5</priority></url>`;
+    
+    concepts.forEach(concept => {
+        xml += `
+        <url>
+            <loc>${baseUrl}/uploads/${concept.filename}</loc>
+            <lastmod>${concept.uploadDate.split('T')[0]}</lastmod>
+            <priority>0.8</priority>
+        </url>`;
+    });
+    
+    xml += '\n</urlset>';
+    res.header('Content-Type', 'application/xml');
+    res.send(xml);
 });
 
 app.listen(PORT, () => {

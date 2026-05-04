@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Allow: /uploads/
+Disallow: /concept/*/edit
+Disallow: /upload
+
+Sitemap: https://nimcet.erpsaas.in/sitemap.xml
