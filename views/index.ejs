@@ -7,7 +7,13 @@
     <nav class="navbar">
         <a href="/" class="nav-logo">Concept Vault</a>
         <div class="nav-links">
-            <div class="controls-bar" style="margin-bottom: 0;">
+            <div class="controls-bar" style="margin-bottom: 0; display: flex; gap: 0.5rem;">
+                <select id="subject-filter" class="sort-select" onchange="filterBySubject(this.value)">
+                    <option value="all">All Subjects</option>
+                    <% Object.keys(subjects).forEach(s => { %>
+                        <option value="<%= s %>"><%= s %></option>
+                    <% }) %>
+                </select>
                 <select id="sort" class="sort-select" onchange="window.location.href='/?sort='+this.value">
                     <option value="order-asc" <%= sortBy === 'order-asc' ? 'selected' : '' %>>Sort Order</option>
                     <option value="date-desc" <%= sortBy === 'date-desc' ? 'selected' : '' %>>Latest First</option>
@@ -28,7 +34,7 @@
             </div>
         <% } else { %>
             <% for (let subject in subjects) { %>
-                <section class="subject-section animate-fade-in">
+                <section class="subject-section animate-fade-in" id="section-<%= subject.replace(/\s+/g, '-').toLowerCase() %>" data-subject="<%= subject %>">
                     <div class="subject-header">
                         <h2 class="subject-title"><%= subject %></h2>
                     </div>
@@ -75,6 +81,19 @@
             <% } %>
         <% } %>
     </main>
+
+    <script>
+        function filterBySubject(subject) {
+            const sections = document.querySelectorAll('.subject-section');
+            sections.forEach(section => {
+                if (subject === 'all' || section.getAttribute('data-subject') === subject) {
+                    section.style.display = 'block';
+                } else {
+                    section.style.display = 'none';
+                }
+            });
+        }
+    </script>
 
     <footer class="container" style="text-align: center; padding: 4rem 0; color: var(--text-secondary); font-size: 0.9rem;">
         <p>&copy; 2026 Concept Vault. Designed with &hearts; for learning.</p>

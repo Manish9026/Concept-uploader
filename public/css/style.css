@@ -265,6 +265,13 @@ input:focus, select:focus {
         grid-template-columns: 1fr;
         gap: 1.5rem;
     }
+    .manage-card {
+        width: 100%;
+    }
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 @media (max-width: 768px) {
