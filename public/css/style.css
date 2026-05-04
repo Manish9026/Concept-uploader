@@ -230,59 +230,69 @@ h1 {
     font-size: 0.85rem;
 }
 
-/* Nesting with Modern Polish */
+/* Modern Collapsible Tree List */
 .nested-wrapper {
-    margin-top: 1.5rem;
-    padding-left: 2rem;
+    margin-top: 1rem;
+    padding-left: 2.5rem;
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 1.2rem;
+    gap: 1rem;
+    transition: all 0.4s ease;
 }
 
-/* Hierarchical Connectors */
-.nested-wrapper::before {
-    content: '';
-    position: absolute;
-    left: 0.5rem;
-    top: -1rem;
-    bottom: 2rem;
-    width: 2px;
-    background: linear-gradient(180deg, var(--accent-primary), transparent);
-    border-radius: 2px;
-    opacity: 0.3;
+.nested-wrapper.collapsed {
+    display: none;
 }
 
-.nested-wrapper .concept-group {
-    background: rgba(255, 255, 255, 0.02);
-    border-color: rgba(255, 255, 255, 0.05);
-    padding: 1.2rem;
-    border-radius: 18px;
+.tree-node {
     position: relative;
 }
 
-.nested-wrapper .concept-group::before {
-    content: '';
+.tree-line {
     position: absolute;
     left: -1.5rem;
-    top: 50%;
-    width: 1.5rem;
-    height: 2px;
-    background: rgba(99, 102, 241, 0.2);
+    top: -1rem;
+    bottom: 1.5rem;
+    width: 2px;
+    background: var(--accent-primary);
+    opacity: 0.3;
+    border-radius: 2px;
 }
 
-.nested-wrapper .concept-info h3 {
-    font-size: 1.2rem;
+.tree-toggle {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.7rem;
+    transition: all 0.3s ease;
 }
 
-.nested-wrapper .btn-primary {
-    padding: 0.4rem 1rem;
-    font-size: 0.8rem;
+.tree-toggle.active {
+    transform: rotate(90deg);
+    background: var(--accent-primary);
+    color: white;
 }
 
-.nested-wrapper .concept-group:hover {
-    background: rgba(255, 255, 255, 0.04);
-    border-color: var(--accent-primary);
+/* Branch Specific Colors (Up to 5 levels) */
+.level-0 > .concept-group { border-left: 4px solid var(--accent-primary); }
+.level-1 > .concept-group { border-left: 4px solid var(--accent-secondary); }
+.level-2 > .concept-group { border-left: 4px solid var(--accent-vibrant); }
+.level-3 > .concept-group { border-left: 4px solid #10b981; }
+.level-4 > .concept-group { border-left: 4px solid #f59e0b; }
+
+.concept-group {
+    background: var(--bg-surface);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 1.5rem;
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 /* Management Page - Cutting Edge Grid */

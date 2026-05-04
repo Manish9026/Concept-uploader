@@ -47,43 +47,55 @@
                     </div>
                     
                     <div class="concept-list">
-                        <% 
-                            function renderConcept(concept, allInSubject) {
-                                const children = allInSubject.filter(c => c.parentId && c.parentId.toString() === concept._id.toString());
-                        %>
-                            <div class="concept-group">
-                                <div class="concept-item">
-                                    <div class="concept-info">
-                                        <h3><%= concept.title %></h3>
-                                        <div class="concept-meta">
-                                            <span>📅 <%= new Date(concept.uploadDate).toLocaleDateString() %></span>
-                                            <% if (concept.sortOrder) { %>
-                                                <span>🔢 #<%= concept.sortOrder %></span>
-                                            <% } %>
-                                        </div>
-                                    </div>
-                                    <div class="concept-actions">
-                                        <a href="/concept/<%= concept._id %>" class="btn btn-outline" title="Manage Settings">⚙️</a>
-                                    </div>
-                                </div>
-                                
-                                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                                    <a href="/view/<%= concept._id %>" class="btn btn-primary" style="flex: 1; justify-content: center;" target="_blank">Read Concept</a>
-                                </div>
-                                
-                                <% if (children.length > 0) { %>
-                                    <div class="nested-wrapper">
-                                        <% children.forEach(child => { %>
-                                            <% renderConcept(child, allInSubject) %>
-                                        <% }) %>
-                                    </div>
-                                <% } %>
-                            </div>
-                        <% 
-                            }
-                            const topLevel = subjects[subject].filter(c => !c.parentId);
-                            topLevel.forEach(concept => renderConcept(concept, subjects[subject]));
-                        %>
+<% 
+    function renderConcept(concept, allInSubject, level = 0) {
+        const children = allInSubject.filter(c => c.parentId && c.parentId.toString() === concept._id.toString());
+%>
+    <div class="tree-node level-<%= level %> animate-fade-in">
+        <% if (level > 0) { %>
+            <div class="tree-line"></div>
+        <% } %>
+        
+        <div class="concept-group">
+            <div class="concept-item">
+                <div class="concept-info">
+                    <div style="display: flex; align-items: center; gap: 0.8rem;">
+                        <% if (children.length > 0) { %>
+                            <div class="tree-toggle active" onclick="toggleTree('<%= concept._id %>')">▶</div>
+                        <% } %>
+                        <h3><%= concept.title %></h3>
+                    </div>
+                    <div class="concept-meta">
+                        <span>📅 <%= new Date(concept.uploadDate).toLocaleDateString() %></span>
+                        <% if (concept.sortOrder) { %>
+                            <span>🔢 #<%= concept.sortOrder %></span>
+                        <% } %>
+                    </div>
+                </div>
+                <div class="concept-actions">
+                    <a href="/concept/<%= concept._id %>" class="btn btn-outline" title="Manage Settings">⚙️</a>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                <a href="/view/<%= concept._id %>" class="btn btn-primary" style="flex: 1; justify-content: center;" target="_blank">Read Concept</a>
+            </div>
+            
+            <% if (children.length > 0) { %>
+                <div class="nested-wrapper" id="children-<%= concept._id %>">
+                    <% children.forEach(child => { %>
+                        <% renderConcept(child, allInSubject, level + 1) %>
+                    <% }) %>
+                </div>
+            <% } %>
+        </div>
+    </div>
+<% 
+    }
+    const allConceptsInSubject = subjects[subject];
+    const topLevel = allConceptsInSubject.filter(c => !c.parentId);
+    topLevel.forEach(concept => renderConcept(concept, allConceptsInSubject));
+%>
                     </div>
                 </section>
             <% } %>
@@ -91,6 +103,13 @@
     </main>
 
     <script>
+        function toggleTree(id) {
+            const wrapper = document.getElementById('children-' + id);
+            const toggle = event.currentTarget;
+            wrapper.classList.toggle('collapsed');
+            toggle.classList.toggle('active');
+        }
+
         function toggleMenu() {
             document.getElementById('navLinks').classList.toggle('active');
             document.querySelector('.menu-toggle').classList.toggle('active');
