@@ -1,7 +1,9 @@
+require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs-extra');
+const session = require('express-session');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -14,6 +16,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static('public'));
 app.use('/uploads', express.static('uploads'));
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'fallback_secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 3600000 } // 1 hour
+}));
 
 // Multer storage configuration
 const storage = multer.diskStorage({
@@ -260,6 +268,74 @@ app.get('/sitemap.xml', async (req, res) => {
     xml += '\n</urlset>';
     res.header('Content-Type', 'application/xml');
     res.send(xml);
+});
+
+// Admin Authentication Middleware
+const isAdmin = (req, res, next) => {
+    if (req.session.isAdmin) return next();
+    res.redirect('/admin/login');
+};
+
+// Admin Routes
+app.get('/admin/login', (req, res) => {
+    res.render('admin-login', { 
+        error: null,
+        seo: { title: 'Admin Login', description: 'Restricted area.', path: '/admin/login' }
+    });
+});
+
+app.post('/admin/login', (req, res) => {
+    const { secretCode } = req.body;
+    if (secretCode === process.env.ADMIN_SECRET) {
+        req.session.isAdmin = true;
+        res.redirect('/admin/dashboard');
+    } else {
+        res.render('admin-login', { 
+            error: 'Invalid secret code!',
+            seo: { title: 'Admin Login', description: 'Restricted area.', path: '/admin/login' }
+        });
+    }
+});
+
+app.get('/admin/dashboard', isAdmin, async (req, res) => {
+    const uploadDir = path.join(__dirname, 'uploads');
+    const files = await fs.readdir(uploadDir);
+    const concepts = await getConcepts();
+    
+    // Enrich file info with concept titles if they exist
+    const fileList = files.filter(f => f !== '.gitkeep').map(file => {
+        const concept = concepts.find(c => c.filename === file);
+        return {
+            name: file,
+            isTracked: !!concept,
+            conceptTitle: concept ? concept.title : 'Orphaned File',
+            stats: fs.statSync(path.join(uploadDir, file))
+        };
+    });
+
+    res.render('admin-dashboard', { 
+        files: fileList,
+        seo: { title: 'Admin Dashboard', description: 'System file management.', path: '/admin/dashboard' }
+    });
+});
+
+app.post('/admin/delete-file', isAdmin, async (req, res) => {
+    const { filename } = req.body;
+    const filePath = path.join(__dirname, 'uploads', filename);
+    
+    if (await fs.exists(filePath)) {
+        await fs.remove(filePath);
+        // Also remove from concepts.json if tracked
+        let concepts = await getConcepts();
+        const updated = concepts.filter(c => c.filename !== filename);
+        await saveConcepts(updated);
+    }
+    res.redirect('/admin/dashboard');
+});
+
+app.get('/admin/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/');
 });
 
 app.listen(PORT, () => {
