@@ -83,7 +83,7 @@
                 </div>
 
                 <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 2rem; padding: 1.2rem;">
-                    Launch Concept 🚀
+                    Launch Concept <i data-lucide="rocket" style="margin-left: 0.5rem; width: 20px; height: 20px;"></i>
                 </button>
             </form>
         </div>
@@ -94,6 +94,9 @@
             document.getElementById('navLinks').classList.toggle('active');
             document.querySelector('.menu-toggle').classList.toggle('active');
         }
+
+        // Initialize Lucide Icons
+        lucide.createIcons();
 
         function switchTab(tabId, el) {
             document.querySelectorAll('.tab').forEach(t => {

@@ -287,12 +287,121 @@ h1 {
 .level-3 > .concept-group { border-left: 4px solid #10b981; }
 .level-4 > .concept-group { border-left: 4px solid #f59e0b; }
 
+/* Timeline-Style Tree Connectors */
+.nested-wrapper {
+    margin: 0.5rem 0 0 1.8rem;
+    padding-left: 1.2rem;
+    position: relative;
+    border-left: 1.5px solid rgba(255, 255, 255, 0.08);
+}
+
+.tree-node {
+    position: relative;
+    padding: 0.4rem 0;
+}
+
+/* Connector Node Dot */
+.tree-node::before {
+    content: '';
+    position: absolute;
+    left: -1.2rem;
+    top: 1.8rem;
+    width: 8px;
+    height: 8px;
+    background: var(--accent-primary);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 10px var(--accent-primary);
+    opacity: 0.6;
+}
+
+/* Horizontal Connector Line */
+.tree-node::after {
+    content: '';
+    position: absolute;
+    left: -1.2rem;
+    top: 1.8rem;
+    width: 0.8rem;
+    height: 1.5px;
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-50%);
+}
+
 .concept-group {
-    background: var(--bg-surface);
+    background: rgba(255, 255, 255, 0.02);
     border: 1px solid var(--glass-border);
-    border-radius: 20px;
-    padding: 1.5rem;
-    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    border-radius: 16px;
+    padding: 1rem 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.concept-group:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--accent-primary);
+}
+
+.concept-group:hover {
+    background: rgba(255, 255, 255, 0.02);
+    transform: none;
+    box-shadow: none;
+}
+
+.concept-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.concept-info h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0;
+}
+
+.concept-meta {
+    font-size: 0.75rem;
+    opacity: 0.6;
+}
+
+.concept-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.btn-icon {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: 0.2s;
+}
+
+.btn-icon:hover {
+    background: var(--accent-primary);
+    color: white;
+}
+
+.tree-node {
+    border-left: 2px solid transparent;
+}
+
+/* Depth Indentation */
+.level-0 { padding-left: 0; }
+.level-1 { padding-left: 2rem; border-left: 2px solid var(--accent-primary); }
+.level-2 { padding-left: 2rem; border-left: 2px solid var(--accent-secondary); }
+.level-3 { padding-left: 2rem; border-left: 2px solid var(--accent-vibrant); }
+
+.tree-line {
+    display: none; /* Hide old tree lines for clean list look */
 }
 
 /* Management Page - Cutting Edge Grid */

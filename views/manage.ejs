@@ -83,7 +83,7 @@
                 <div style="margin-bottom: 2.5rem;">
                     <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Directly modify the HTML source code using the high-performance Monaco Editor.</p>
                     <a href="/concept/<%= concept._id %>/edit" class="btn btn-primary" style="width: 100%; justify-content: center; background: #10b981;">
-                        Open Visual Editor 📝
+                        Open Visual Editor <i data-lucide="edit-3" style="margin-left: 0.5rem; width: 18px; height: 18px;"></i>
                     </a>
                 </div>
 
@@ -95,7 +95,9 @@
                         <div class="form-group">
                             <input type="file" id="conceptFile" name="conceptFile" accept=".html" required onchange="updateFileName()">
                         </div>
-                        <button type="submit" class="btn btn-outline" style="width: 100%; justify-content: center;">Upload & Replace</button>
+                        <button type="submit" class="btn btn-outline" style="width: 100%; justify-content: center;">
+                            Upload & Replace <i data-lucide="upload-cloud" style="margin-left: 0.5rem; width: 18px; height: 18px;"></i>
+                        </button>
                     </form>
                 </div>
 
@@ -112,6 +114,9 @@
             document.getElementById('navLinks').classList.toggle('active');
             document.querySelector('.menu-toggle').classList.toggle('active');
         }
+
+        // Initialize Lucide Icons
+        lucide.createIcons();
 
         function toggleSubjectInput(val) {
             const container = document.getElementById('new-subject-container');
