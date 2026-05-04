@@ -28,10 +28,13 @@
         let editor;
         require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
         
+        let originalContent = '';
+        let isDirty = false;
+
         require(['vs/editor/editor.main'], function() {
-            const initialContent = document.getElementById('raw-content').value;
+            originalContent = document.getElementById('raw-content').value;
             editor = monaco.editor.create(document.getElementById('monaco-container'), {
-                value: initialContent,
+                value: originalContent,
                 language: 'html',
                 theme: 'vs-dark',
                 automaticLayout: true,
@@ -40,10 +43,23 @@
                 padding: { top: 20 }
             });
 
+            // Detect changes
+            editor.onDidChangeModelContent(() => {
+                isDirty = editor.getValue() !== originalContent;
+            });
+
             // Keyboard shortcut for saving (Ctrl+S / Cmd+S)
             editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, function() {
                 saveContent();
             });
+        });
+
+        // Warn before leaving with unsaved changes
+        window.addEventListener('beforeunload', (e) => {
+            if (isDirty) {
+                e.preventDefault();
+                e.returnValue = ''; // Trigger browser confirmation dialog
+            }
         });
 
         async function saveContent() {
@@ -61,11 +77,15 @@
                 if (response.ok) {
                     status.innerText = 'Last saved: ' + new Date().toLocaleTimeString();
                     status.style.color = '#22c55e';
+                    originalContent = content; // Update original content to current
+                    isDirty = false;
                 } else {
-                    throw new Error('Save failed');
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Save failed');
                 }
             } catch (err) {
-                status.innerText = 'Error saving!';
+                console.error('Save error:', err);
+                status.innerText = 'Error: ' + err.message;
                 status.style.color = '#ef4444';
             }
         }

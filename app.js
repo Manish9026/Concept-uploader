@@ -36,8 +36,8 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // Middleware
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '50mb' }));
 app.use(express.static('public'));
 app.use(session({
     secret: process.env.SESSION_SECRET || 'fallback_secret',
@@ -100,18 +100,22 @@ app.get('/', async (req, res) => {
 });
 
 app.get('/upload', async (req, res) => {
-    const concepts = await Concept.find().lean();
-    const allSubjects = await Subject.find().lean();
-    res.render('upload', { 
-        allConcepts: concepts,
-        allSubjects: allSubjects.map(s => s.name),
-        seo: {
-            title: 'Contribute New Concept',
-            description: 'Upload and organize new educational HTML concepts into the Concept Vault.',
-            keywords: 'upload concept, contribute education, html concept uploader',
-            path: '/upload'
-        }
-    });
+    try {
+        const concepts = await Concept.find().lean();
+        const allSubjects = await Subject.find().lean();
+        res.render('upload', { 
+            allConcepts: concepts,
+            allSubjects: allSubjects.map(s => s.name),
+            seo: {
+                title: `Contribute New Concept`,
+                description: 'Upload and organize new educational HTML concepts into the Concept Vault.',
+                keywords: 'upload concept, contribute education, html concept uploader',
+                path: '/upload'
+            }
+        });
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
 });
 
 app.post('/upload', upload.single('conceptFile'), async (req, res) => {
@@ -165,7 +169,7 @@ app.get('/concept/:id', async (req, res) => {
                 title: `Manage: ${concept.title}`,
                 description: `Update and manage the content for ${concept.title} in the Concept Vault.`,
                 keywords: `manage ${concept.title}, edit concept, update study material`,
-                path: `/concept/${concept.id}`
+                path: `/concept/${concept._id}`
             }
         });
     } catch (err) {
@@ -223,7 +227,7 @@ app.get('/concept/:id/edit', async (req, res) => {
                 title: `Editing: ${concept.title}`,
                 description: `Directly edit the HTML source for ${concept.title} using the Monaco Editor.`,
                 keywords: 'html editor, monaco editor, online code editor',
-                path: `/concept/${concept.id}/edit`
+                path: `/concept/${concept._id}/edit`
             }
         });
     } catch (err) {

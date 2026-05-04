@@ -8,13 +8,13 @@
         <a href="/" class="nav-logo">Concept Vault</a>
         <div class="nav-links">
             <div class="controls-bar" style="margin-bottom: 0; display: flex; gap: 0.5rem;">
-                <select id="subject-filter" class="sort-select" onchange="filterBySubject(this.value)">
+                <select id="subject-filter" class="sort-select" onchange="filterBySubject(this.value)" style="width: auto;">
                     <option value="all">All Subjects</option>
-                    <% Object.keys(subjects).forEach(s => { %>
+                    <% allSubjects.forEach(s => { %>
                         <option value="<%= s %>"><%= s %></option>
                     <% }) %>
                 </select>
-                <select id="sort" class="sort-select" onchange="window.location.href='/?sort='+this.value">
+                <select id="sort" class="sort-select" onchange="window.location.href='/?sort='+this.value" style="width: auto;">
                     <option value="order-asc" <%= sortBy === 'order-asc' ? 'selected' : '' %>>Sort Order</option>
                     <option value="date-desc" <%= sortBy === 'date-desc' ? 'selected' : '' %>>Latest First</option>
                     <option value="title-asc" <%= sortBy === 'title-asc' ? 'selected' : '' %>>Title A-Z</option>
@@ -41,11 +41,8 @@
                     
                     <div class="concept-list">
                         <% 
-                            // Filter for top-level concepts (no parent or parent not in this subject)
-                            const topLevel = subjects[subject].filter(c => !c.parentId);
-                            
                             function renderConcept(concept, allInSubject) {
-                                const children = allInSubject.filter(c => c.parentId == concept.id);
+                                const children = allInSubject.filter(c => c.parentId && c.parentId.toString() === concept._id.toString());
                         %>
                             <div class="concept-group">
                                 <div class="concept-item">
@@ -54,14 +51,17 @@
                                         <div class="concept-meta">
                                             <span>📅 <%= new Date(concept.uploadDate).toLocaleDateString() %></span>
                                             <% if (concept.sortOrder) { %>
-                                                <span>🔢 Order: <%= concept.sortOrder %></span>
+                                                <span>🔢 #<%= concept.sortOrder %></span>
                                             <% } %>
                                         </div>
                                     </div>
                                     <div class="concept-actions">
-                                        <a href="/view/<%= concept._id %>" class="btn btn-outline" style="padding: 0.5rem 1rem;" target="_blank">View</a>
-                                        <a href="/concept/<%= concept._id %>" class="btn btn-outline" style="padding: 0.5rem 1rem;">Manage ⚙️</a>
+                                        <a href="/concept/<%= concept._id %>" class="btn btn-outline" title="Manage Settings">⚙️</a>
                                     </div>
+                                </div>
+                                
+                                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                                    <a href="/view/<%= concept._id %>" class="btn btn-primary" style="flex: 1; justify-content: center;" target="_blank">Read Concept</a>
                                 </div>
                                 
                                 <% if (children.length > 0) { %>
@@ -74,6 +74,7 @@
                             </div>
                         <% 
                             }
+                            const topLevel = subjects[subject].filter(c => !c.parentId);
                             topLevel.forEach(concept => renderConcept(concept, subjects[subject]));
                         %>
                     </div>

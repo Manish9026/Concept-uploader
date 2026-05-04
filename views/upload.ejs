@@ -12,9 +12,11 @@
     </nav>
 
     <main class="container">
-        <div class="form-container animate-fade-in" style="max-width: 800px;">
+        <div class="manage-card animate-fade-in" style="max-width: 800px; margin: 2rem auto;">
+            <h1 style="font-size: 2.5rem; margin-bottom: 2rem;">Contribute Concept</h1>
+            
             <form action="/upload" method="POST" enctype="multipart/form-data">
-                <div class="form-row">
+                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
                     <div class="form-group">
                         <label for="title">Concept Title</label>
                         <input type="text" id="title" name="title" placeholder="e.g. Memory Management" required>
@@ -29,22 +31,19 @@
                             <option value="new" style="font-weight: 800; color: var(--accent-primary);">+ Add New Subject</option>
                         </select>
                         
-                        <!-- Hidden by default, shown if "new" is selected -->
                         <div id="new-subject-container" style="display: none; margin-top: 1rem;">
                             <input type="text" id="subject-new" placeholder="Enter new subject name">
-                            <p class="input-hint">This will be saved for future use.</p>
                         </div>
 
-                        <!-- The actual field sent to the server -->
                         <input type="hidden" name="subject" id="subject-final" required>
                     </div>
                 </div>
 
-                <div class="form-row">
+                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2.5rem;">
                     <div class="form-group">
                         <label for="sortOrder">Sort Order</label>
                         <input type="number" id="sortOrder" name="sortOrder" placeholder="0" value="0">
-                        <p class="input-hint">Lower numbers appear first.</p>
+                        <p class="input-hint" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;">Lower numbers appear first.</p>
                     </div>
                     <div class="form-group">
                         <label for="parentId">Parent Concept (Optional)</label>
@@ -54,34 +53,30 @@
                                 <option value="<%= c._id %>"><%= c.subject %>: <%= c.title %></option>
                             <% }) %>
                         </select>
-                        <p class="input-hint">Nest this concept under another.</p>
                     </div>
                 </div>
 
-                <div class="tabs">
-                    <div class="tab active" onclick="switchTab('upload-tab', this)">Upload File</div>
-                    <div class="tab" onclick="switchTab('paste-tab', this)">Paste HTML</div>
+                <div class="tabs" style="display: flex; gap: 2rem; margin-bottom: 2rem; border-bottom: 1px solid var(--glass-border);">
+                    <div class="tab active" onclick="switchTab('upload-tab', this)" style="padding: 1rem 0; cursor: pointer; border-bottom: 2px solid var(--accent-primary);">Upload File</div>
+                    <div class="tab" onclick="switchTab('paste-tab', this)" style="padding: 1rem 0; cursor: pointer; color: var(--text-secondary);">Paste HTML</div>
                 </div>
 
-                <div id="upload-tab" class="tab-content active">
+                <div id="upload-tab" class="tab-content">
                     <div class="form-group">
-                        <label>HTML File</label>
-                        <div class="file-input-wrapper">
-                            <p id="file-name-display">Click to select or drag & drop .html file</p>
-                            <input type="file" id="conceptFile" name="conceptFile" accept=".html">
-                        </div>
+                        <label>HTML File Source</label>
+                        <input type="file" id="conceptFile" name="conceptFile" accept=".html">
                     </div>
                 </div>
 
-                <div id="paste-tab" class="tab-content">
+                <div id="paste-tab" class="tab-content" style="display: none;">
                     <div class="form-group">
                         <label for="pasteContent">Paste HTML Code</label>
-                        <textarea id="pasteContent" name="pasteContent" class="paste-area" placeholder="<html>...</html>"></textarea>
+                        <textarea id="pasteContent" name="pasteContent" style="height: 300px; font-family: monospace;" placeholder="<html>...</html>"></textarea>
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 1rem;">
-                    Create Concept
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 2rem; padding: 1.2rem;">
+                    Launch Concept 🚀
                 </button>
             </form>
         </div>
@@ -89,12 +84,18 @@
 
     <script>
         function switchTab(tabId, el) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            el.classList.add('active');
-            document.getElementById(tabId).classList.add('active');
+            document.querySelectorAll('.tab').forEach(t => {
+                t.classList.remove('active');
+                t.style.color = 'var(--text-secondary)';
+                t.style.borderBottomColor = 'transparent';
+            });
+            document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
             
-            // Toggle required attributes
+            el.classList.add('active');
+            el.style.color = 'var(--text-primary)';
+            el.style.borderBottomColor = 'var(--accent-primary)';
+            document.getElementById(tabId).style.display = 'block';
+            
             const fileInput = document.getElementById('conceptFile');
             const pasteArea = document.getElementById('pasteContent');
             if (tabId === 'upload-tab') {
@@ -106,7 +107,6 @@
             }
         }
         
-        // Initialize
         switchTab('upload-tab', document.querySelector('.tab'));
 
         function toggleSubjectInput(val) {
@@ -116,28 +116,11 @@
             
             if (val === 'new') {
                 container.style.display = 'block';
-                finalInput.value = ''; // Clear so validation catches it if empty
                 newInput.focus();
-                
-                newInput.oninput = () => {
-                    finalInput.value = newInput.value;
-                };
+                newInput.oninput = () => { finalInput.value = newInput.value; };
             } else {
                 container.style.display = 'none';
                 finalInput.value = val;
-                newInput.oninput = null;
-            }
-        }
-        
-        // Initial sync
-        toggleSubjectInput(document.getElementById('subject-select').value);
-
-        function updateFileName() {
-            const input = document.getElementById('conceptFile');
-            const display = document.getElementById('file-name-display');
-            if (input.files.length > 0) {
-                display.innerText = "Selected: " + input.files[0].name;
-                display.style.color = "var(--accent-primary)";
             }
         }
     </script>
