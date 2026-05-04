@@ -4,8 +4,32 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs-extra');
 const session = require('express-session');
+const mongoose = require('mongoose');
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// MongoDB Connection
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log('Connected to MongoDB ✅'))
+    .catch(err => console.error('MongoDB connection error ❌:', err));
+
+// Schemas
+const SubjectSchema = new mongoose.Schema({
+    name: { type: String, required: true, unique: true }
+});
+
+const ConceptSchema = new mongoose.Schema({
+    title: { type: String, required: true },
+    subject: { type: String, required: true },
+    htmlContent: { type: String, required: true },
+    uploadDate: { type: Date, default: Date.now },
+    sortOrder: { type: Number, default: 0 },
+    parentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Concept', default: null },
+    originalName: { type: String }
+});
+
+const Subject = mongoose.model('Subject', SubjectSchema);
+const Concept = mongoose.model('Concept', ConceptSchema);
 
 // Configure EJS
 app.set('view engine', 'ejs');
@@ -15,25 +39,15 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static('public'));
-app.use('/uploads', express.static('uploads'));
 app.use(session({
     secret: process.env.SESSION_SECRET || 'fallback_secret',
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 3600000 } // 1 hour
+    cookie: { maxAge: 3600000 }
 }));
 
-// Multer storage configuration
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/');
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + '-' + file.originalname);
-    }
-});
-
+// Multer (Memory Storage for optimized DB transfer)
+const storage = multer.memoryStorage();
 const upload = multer({ 
     storage: storage,
     fileFilter: (req, file, cb) => {
@@ -45,91 +59,52 @@ const upload = multer({
     }
 });
 
-const DATA_PATH = path.join(__dirname, 'data', 'concepts.json');
-const SUBJECTS_PATH = path.join(__dirname, 'data', 'subjects.json');
-
-// Helper to read data
-async function getConcepts() {
-    try {
-        const data = await fs.readJson(DATA_PATH);
-        return data;
-    } catch (err) {
-        return [];
-    }
-}
-
-// Helper to write data
-async function saveConcepts(concepts) {
-    await fs.writeJson(DATA_PATH, concepts, { spaces: 2 });
-}
-
-// Helper to read subjects
-async function getSubjects() {
-    try {
-        if (!await fs.exists(SUBJECTS_PATH)) {
-            const concepts = await getConcepts();
-            const initial = [...new Set(concepts.map(c => c.subject))];
-            await fs.writeJson(SUBJECTS_PATH, initial);
-            return initial;
-        }
-        return await fs.readJson(SUBJECTS_PATH);
-    } catch (err) {
-        return [];
-    }
-}
-
-// Helper to save subjects
-async function saveSubjects(subjects) {
-    await fs.writeJson(SUBJECTS_PATH, subjects, { spaces: 2 });
-}
-
 // Routes
 app.get('/', async (req, res) => {
-    let concepts = await getConcepts();
-    const sortBy = req.query.sort || 'order-asc';
+    try {
+        let concepts = await Concept.find().lean();
+        const sortBy = req.query.sort || 'order-asc';
 
-    // Sorting logic
-    concepts.sort((a, b) => {
-        // Always respect explicit sort order first if it exists
-        if (a.sortOrder !== b.sortOrder) {
-            return (a.sortOrder || 0) - (b.sortOrder || 0);
-        }
+        // Sorting
+        concepts.sort((a, b) => {
+            if (a.sortOrder !== b.sortOrder) return (a.sortOrder || 0) - (b.sortOrder || 0);
+            if (sortBy === 'title-asc') return a.title.localeCompare(b.title);
+            if (sortBy === 'title-desc') return b.title.localeCompare(a.title);
+            if (sortBy === 'date-asc') return a.uploadDate - b.uploadDate;
+            if (sortBy === 'date-desc') return b.uploadDate - a.uploadDate;
+            return 0;
+        });
 
-        if (sortBy === 'title-asc') return a.title.localeCompare(b.title);
-        if (sortBy === 'title-desc') return b.title.localeCompare(a.title);
-        if (sortBy === 'date-asc') return new Date(a.uploadDate) - new Date(b.uploadDate);
-        if (sortBy === 'date-desc') return new Date(b.uploadDate) - new Date(a.uploadDate);
-        return 0;
-    });
+        const grouped = concepts.reduce((acc, curr) => {
+            if (!acc[curr.subject]) acc[curr.subject] = [];
+            acc[curr.subject].push(curr);
+            return acc;
+        }, {});
 
-    // Group concepts by subject and handle nesting
-    const grouped = concepts.reduce((acc, curr) => {
-        if (!acc[curr.subject]) acc[curr.subject] = [];
-        acc[curr.subject].push(curr);
-        return acc;
-    }, {});
-
-    const allSubjects = await getSubjects();
-    res.render('index', { 
-        subjects: grouped, 
-        sortBy, 
-        allConcepts: concepts,
-        allSubjects,
-        seo: {
-            title: 'Knowledge Repository',
-            description: 'A premium vault for educational concepts, computer science guides, and interactive study materials.',
-            keywords: 'NIMCET, computer science, concept vault, educational resources, software guides',
-            path: '/'
-        }
-    });
+        const allSubjects = await Subject.find().lean();
+        res.render('index', { 
+            subjects: grouped, 
+            sortBy, 
+            allConcepts: concepts,
+            allSubjects: allSubjects.map(s => s.name),
+            seo: {
+                title: 'Knowledge Repository',
+                description: 'A premium vault for educational concepts, computer science guides, and interactive study materials.',
+                keywords: 'NIMCET, computer science, concept vault, educational resources, software guides',
+                path: '/'
+            }
+        });
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
 });
 
 app.get('/upload', async (req, res) => {
-    const concepts = await getConcepts();
-    const allSubjects = await getSubjects();
+    const concepts = await Concept.find().lean();
+    const allSubjects = await Subject.find().lean();
     res.render('upload', { 
         allConcepts: concepts,
-        allSubjects,
+        allSubjects: allSubjects.map(s => s.name),
         seo: {
             title: 'Contribute New Concept',
             description: 'Upload and organize new educational HTML concepts into the Concept Vault.',
@@ -142,156 +117,153 @@ app.get('/upload', async (req, res) => {
 app.post('/upload', upload.single('conceptFile'), async (req, res) => {
     try {
         const { title, subject, pasteContent, sortOrder, parentId } = req.body;
-        let filename;
+        let htmlContent;
 
         if (req.file) {
-            filename = req.file.filename;
+            htmlContent = req.file.buffer.toString('utf-8');
         } else if (pasteContent) {
-            filename = `paste-${Date.now()}.html`;
-            await fs.writeFile(path.join(__dirname, 'uploads', filename), pasteContent);
+            htmlContent = pasteContent;
         } else {
             return res.status(400).send('No file or content provided.');
         }
 
-        const concepts = await getConcepts();
-        const allSubjects = await getSubjects();
-        
-        // Add new subject to persistent list if not exists
-        if (subject && !allSubjects.includes(subject)) {
-            allSubjects.push(subject);
-            await saveSubjects(allSubjects);
-        }
+        // Persist Subject
+        await Subject.findOneAndUpdate(
+            { name: subject },
+            { name: subject },
+            { upsert: true, new: true }
+        );
 
-        const newConcept = {
-            id: Date.now(),
+        const newConcept = new Concept({
             title,
             subject,
-            filename: filename,
+            htmlContent,
             originalName: req.file ? req.file.originalname : 'pasted_content.html',
-            uploadDate: new Date().toISOString(),
             sortOrder: parseInt(sortOrder) || 0,
             parentId: parentId || null
-        };
+        });
 
-        concepts.push(newConcept);
-        await saveConcepts(concepts);
-
+        await newConcept.save();
         res.redirect('/');
     } catch (err) {
         res.status(500).send(err.message);
     }
 });
 
-// Manage Page
 app.get('/concept/:id', async (req, res) => {
-    const concepts = await getConcepts();
-    const allSubjects = await getSubjects();
-    const concept = concepts.find(c => c.id == req.params.id);
-    if (!concept) return res.status(404).send('Concept not found');
-    res.render('manage', { 
-        concept, 
-        allConcepts: concepts,
-        allSubjects,
-        seo: {
-            title: `Manage: ${concept.title}`,
-            description: `Update and manage the content for ${concept.title} in the Concept Vault.`,
-            keywords: `manage ${concept.title}, edit concept, update study material`,
-            path: `/concept/${concept.id}`
-        }
-    });
-});
+    try {
+        const concept = await Concept.findById(req.params.id);
+        if (!concept) return res.status(404).send('Concept not found');
+        const concepts = await Concept.find().lean();
+        const allSubjects = await Subject.find().lean();
 
-// Update Metadata
-app.post('/concept/:id/update', async (req, res) => {
-    const { title, subject, sortOrder, parentId } = req.body;
-    let concepts = await getConcepts();
-    const allSubjects = await getSubjects();
-
-    // Add new subject to persistent list if not exists
-    if (subject && !allSubjects.includes(subject)) {
-        allSubjects.push(subject);
-        await saveSubjects(allSubjects);
+        res.render('manage', { 
+            concept, 
+            allConcepts: concepts,
+            allSubjects: allSubjects.map(s => s.name),
+            seo: {
+                title: `Manage: ${concept.title}`,
+                description: `Update and manage the content for ${concept.title} in the Concept Vault.`,
+                keywords: `manage ${concept.title}, edit concept, update study material`,
+                path: `/concept/${concept.id}`
+            }
+        });
+    } catch (err) {
+        res.status(500).send(err.message);
     }
-    
-    const index = concepts.findIndex(c => c.id == req.params.id);
-    if (index === -1) return res.status(404).send('Concept not found');
-    
-    concepts[index].title = title;
-    concepts[index].subject = subject;
-    concepts[index].sortOrder = parseInt(sortOrder) || 0;
-    concepts[index].parentId = parentId || null;
-    
-    await saveConcepts(concepts);
-    res.redirect(`/concept/${req.params.id}`);
 });
 
-// Replace File
+app.post('/concept/:id/update', async (req, res) => {
+    try {
+        const { title, subject, sortOrder, parentId } = req.body;
+        
+        await Subject.findOneAndUpdate(
+            { name: subject },
+            { name: subject },
+            { upsert: true }
+        );
+
+        await Concept.findByIdAndUpdate(req.params.id, {
+            title,
+            subject,
+            sortOrder: parseInt(sortOrder) || 0,
+            parentId: parentId || null
+        });
+        
+        res.redirect(`/concept/${req.params.id}`);
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+});
+
 app.post('/concept/:id/replace', upload.single('conceptFile'), async (req, res) => {
-    let concepts = await getConcepts();
-    const index = concepts.findIndex(c => c.id == req.params.id);
-    if (index === -1) return res.status(404).send('Concept not found');
-    
-    if (!req.file) return res.status(400).send('No file uploaded');
+    try {
+        if (!req.file) return res.status(400).send('No file uploaded');
+        
+        await Concept.findByIdAndUpdate(req.params.id, {
+            htmlContent: req.file.buffer.toString('utf-8'),
+            originalName: req.file.originalname
+        });
 
-    // Delete old file
-    const oldPath = path.join(__dirname, 'uploads', concepts[index].filename);
-    if (await fs.exists(oldPath)) await fs.remove(oldPath);
-
-    concepts[index].filename = req.file.filename;
-    concepts[index].originalName = req.file.originalname;
-    await saveConcepts(concepts);
-    res.redirect(`/concept/${req.params.id}`);
+        res.redirect(`/concept/${req.params.id}`);
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
 });
 
-// Editor Page
 app.get('/concept/:id/edit', async (req, res) => {
-    const concepts = await getConcepts();
-    const concept = concepts.find(c => c.id == req.params.id);
-    if (!concept) return res.status(404).send('Concept not found');
-    
-    const filePath = path.join(__dirname, 'uploads', concept.filename);
-    const content = await fs.readFile(filePath, 'utf-8');
-    res.render('editor', { 
-        concept, 
-        content,
-        seo: {
-            title: `Editing: ${concept.title}`,
-            description: `Directly edit the HTML source for ${concept.title} using the Monaco Editor.`,
-            keywords: 'html editor, monaco editor, online code editor',
-            path: `/concept/${concept.id}/edit`
-        }
-    });
+    try {
+        const concept = await Concept.findById(req.params.id);
+        if (!concept) return res.status(404).send('Concept not found');
+        
+        res.render('editor', { 
+            concept, 
+            content: concept.htmlContent,
+            seo: {
+                title: `Editing: ${concept.title}`,
+                description: `Directly edit the HTML source for ${concept.title} using the Monaco Editor.`,
+                keywords: 'html editor, monaco editor, online code editor',
+                path: `/concept/${concept.id}/edit`
+            }
+        });
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
 });
 
-// Save from Editor
 app.post('/concept/:id/save', async (req, res) => {
-    const { content } = req.body;
-    const concepts = await getConcepts();
-    const concept = concepts.find(c => c.id == req.params.id);
-    if (!concept) return res.status(404).send('Concept not found');
-    
-    const filePath = path.join(__dirname, 'uploads', concept.filename);
-    await fs.writeFile(filePath, content);
-    res.json({ success: true });
+    try {
+        const { content } = req.body;
+        await Concept.findByIdAndUpdate(req.params.id, { htmlContent: content });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
 });
 
-// Delete Concept
 app.post('/concept/:id/delete', async (req, res) => {
-    let concepts = await getConcepts();
-    const index = concepts.findIndex(c => c.id == req.params.id);
-    if (index === -1) return res.status(404).send('Concept not found');
+    try {
+        await Concept.findByIdAndDelete(req.params.id);
+        res.redirect('/');
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+});
 
-    const filePath = path.join(__dirname, 'uploads', concepts[index].filename);
-    if (await fs.exists(filePath)) await fs.remove(filePath);
-
-    concepts.splice(index, 1);
-    await saveConcepts(concepts);
-    res.redirect('/');
+// Serve HTML content dynamically
+app.get('/view/:id', async (req, res) => {
+    try {
+        const concept = await Concept.findById(req.params.id);
+        if (!concept) return res.status(404).send('Concept not found');
+        res.send(concept.htmlContent);
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
 });
 
 // Sitemap
 app.get('/sitemap.xml', async (req, res) => {
-    const concepts = await getConcepts();
+    const concepts = await Concept.find().lean();
     const baseUrl = 'https://nimcet.erpsaas.in';
     
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -302,8 +274,8 @@ app.get('/sitemap.xml', async (req, res) => {
     concepts.forEach(concept => {
         xml += `
         <url>
-            <loc>${baseUrl}/uploads/${concept.filename}</loc>
-            <lastmod>${concept.uploadDate.split('T')[0]}</lastmod>
+            <loc>${baseUrl}/view/${concept._id}</loc>
+            <lastmod>${new Date(concept.uploadDate).toISOString().split('T')[0]}</lastmod>
             <priority>0.8</priority>
         </url>`;
     });
@@ -313,13 +285,12 @@ app.get('/sitemap.xml', async (req, res) => {
     res.send(xml);
 });
 
-// Admin Authentication Middleware
+// Admin Routes
 const isAdmin = (req, res, next) => {
     if (req.session.isAdmin) return next();
     res.redirect('/admin/login');
 };
 
-// Admin Routes
 app.get('/admin/login', (req, res) => {
     res.render('admin-login', { 
         error: null,
@@ -341,39 +312,11 @@ app.post('/admin/login', (req, res) => {
 });
 
 app.get('/admin/dashboard', isAdmin, async (req, res) => {
-    const uploadDir = path.join(__dirname, 'uploads');
-    const files = await fs.readdir(uploadDir);
-    const concepts = await getConcepts();
-    
-    // Enrich file info with concept titles if they exist
-    const fileList = files.filter(f => f !== '.gitkeep').map(file => {
-        const concept = concepts.find(c => c.filename === file);
-        return {
-            name: file,
-            isTracked: !!concept,
-            conceptTitle: concept ? concept.title : 'Orphaned File',
-            stats: fs.statSync(path.join(uploadDir, file))
-        };
-    });
-
+    const concepts = await Concept.find().lean();
     res.render('admin-dashboard', { 
-        files: fileList,
-        seo: { title: 'Admin Dashboard', description: 'System file management.', path: '/admin/dashboard' }
+        concepts,
+        seo: { title: 'Admin Dashboard', description: 'System management.', path: '/admin/dashboard' }
     });
-});
-
-app.post('/admin/delete-file', isAdmin, async (req, res) => {
-    const { filename } = req.body;
-    const filePath = path.join(__dirname, 'uploads', filename);
-    
-    if (await fs.exists(filePath)) {
-        await fs.remove(filePath);
-        // Also remove from concepts.json if tracked
-        let concepts = await getConcepts();
-        const updated = concepts.filter(c => c.filename !== filename);
-        await saveConcepts(updated);
-    }
-    res.redirect('/admin/dashboard');
 });
 
 app.get('/admin/logout', (req, res) => {

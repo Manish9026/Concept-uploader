@@ -16,7 +16,7 @@
             <!-- Details & Update -->
             <div class="manage-card">
                 <h2>Concept Details</h2>
-                <form action="/concept/<%= concept.id %>/update" method="POST">
+                <form action="/concept/<%= concept._id %>/update" method="POST">
                     <div class="form-row">
                         <div class="form-group">
                             <label for="title">Title</label>
@@ -49,8 +49,8 @@
                             <select id="parentId" name="parentId">
                                 <option value="">-- No Parent --</option>
                                 <% allConcepts.forEach(c => { %>
-                                    <% if (c.id != concept.id) { %>
-                                        <option value="<%= c.id %>" <%= concept.parentId == c.id ? 'selected' : '' %>>
+                                    <% if (c._id.toString() != concept._id.toString()) { %>
+                                        <option value="<%= c._id %>" <%= concept.parentId && concept.parentId.toString() == c._id.toString() ? 'selected' : '' %>>
                                             <%= c.subject %>: <%= c.title %>
                                         </option>
                                     <% } %>
@@ -63,7 +63,7 @@
 
                 <div class="danger-zone">
                     <p style="color: #ef4444; font-size: 0.9rem; margin-bottom: 1rem;">Delete this concept permanently.</p>
-                    <form action="/concept/<%= concept.id %>/delete" method="POST" onsubmit="return confirm('Are you sure? This cannot be undone.')">
+                    <form action="/concept/<%= concept._id %>/delete" method="POST" onsubmit="return confirm('Are you sure? This cannot be undone.')">
                         <button type="submit" class="btn btn-danger" style="width: 100%; justify-content: center;">Delete Concept</button>
                     </form>
                 </div>
@@ -75,7 +75,7 @@
                 
                 <div style="margin-bottom: 2rem;">
                     <p style="color: var(--text-secondary); margin-bottom: 1rem;">Directly edit the HTML code using our built-in VS Code-style editor.</p>
-                    <a href="/concept/<%= concept.id %>/edit" class="btn btn-primary" style="width: 100%; justify-content: center; background: #22c55e;">
+                    <a href="/concept/<%= concept._id %>/edit" class="btn btn-primary" style="width: 100%; justify-content: center; background: #22c55e;">
                         Open Code Editor 📝
                     </a>
                 </div>
@@ -83,7 +83,7 @@
                 <div style="padding-top: 2rem; border-top: 1px solid var(--glass-border);">
                     <h3>Replace Source File</h3>
                     <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.9rem;">Current: <%= concept.originalName %></p>
-                    <form action="/concept/<%= concept.id %>/replace" method="POST" enctype="multipart/form-data">
+                    <form action="/concept/<%= concept._id %>/replace" method="POST" enctype="multipart/form-data">
                         <div class="form-group">
                             <div class="file-input-wrapper" style="padding: 1rem;">
                                 <p id="file-name-display" style="font-size: 0.8rem;">Click to select new file</p>

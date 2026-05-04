@@ -8,8 +8,8 @@
 <body class="editor-page-body">
     <div class="editor-header">
         <div style="display: flex; align-items: center; gap: 1rem;">
-            <a href="/concept/<%= concept.id %>" class="btn btn-outline" style="padding: 0.5rem 1rem;">&larr; Exit</a>
-            <h2 style="font-size: 1.2rem; margin: 0;"><%= concept.title %> <span style="color: var(--text-secondary); font-weight: 400; font-size: 0.9rem;">(<%= concept.filename %>)</span></h2>
+            <a href="/concept/<%= concept._id %>" class="btn btn-outline" style="padding: 0.5rem 1rem;">&larr; Exit</a>
+            <h2 style="font-size: 1.2rem; margin: 0;"><%= concept.title %> <span style="color: var(--text-secondary); font-weight: 400; font-size: 0.9rem;">(<%= concept.originalName %>)</span></h2>
         </div>
         <div style="display: flex; gap: 1rem;">
             <span id="save-status" style="color: var(--text-secondary); font-size: 0.9rem; align-self: center; margin-right: 1rem;"></span>
@@ -52,7 +52,7 @@
             
             const content = editor.getValue();
             try {
-                const response = await fetch('/concept/<%= concept.id %>/save', {
+                const response = await fetch('/concept/<%= concept._id %>/save', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ content })

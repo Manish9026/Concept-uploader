@@ -51,7 +51,7 @@
                         <select id="parentId" name="parentId">
                             <option value="">-- No Parent --</option>
                             <% allConcepts.forEach(c => { %>
-                                <option value="<%= c.id %>"><%= c.subject %>: <%= c.title %></option>
+                                <option value="<%= c._id %>"><%= c.subject %>: <%= c.title %></option>
                             <% }) %>
                         </select>
                         <p class="input-hint">Nest this concept under another.</p>

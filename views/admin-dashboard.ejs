@@ -40,33 +40,32 @@
     <main class="container">
         <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
             <div>
-                <h1 style="font-size: 2.5rem; margin: 0;">Uploads Directory</h1>
-                <p style="color: var(--text-secondary);">Direct file system management for the <code>/uploads</code> folder.</p>
+                <h1 style="font-size: 2.5rem; margin: 0;">System Database</h1>
+                <p style="color: var(--text-secondary);">Direct concept and content management via MongoDB.</p>
             </div>
             <div style="color: var(--text-secondary); font-size: 0.9rem;">
-                Total Files: <%= files.length %>
+                Total Concepts: <%= concepts.length %>
             </div>
         </div>
 
         <div class="file-grid animate-fade-in">
-            <% files.forEach(file => { %>
+            <% concepts.forEach(concept => { %>
                 <div class="file-card">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                        <span class="file-status <%= file.isTracked ? 'status-tracked' : 'status-orphan' %>">
-                            <%= file.isTracked ? 'Linked to Concept' : 'Orphaned (No metadata)' %>
+                        <span class="file-status status-tracked">
+                            <%= concept.subject %>
                         </span>
-                        <code style="font-size: 0.7rem; opacity: 0.5;"><%= (file.stats.size / 1024).toFixed(2) %> KB</code>
+                        <code style="font-size: 0.7rem; opacity: 0.5;"><%= new Date(concept.uploadDate).toLocaleDateString() %></code>
                     </div>
                     
                     <div>
-                        <h3 style="font-size: 1.1rem; margin-bottom: 0.2rem; word-break: break-all;"><%= file.name %></h3>
-                        <p style="font-size: 0.85rem; color: var(--accent-primary);"><%= file.conceptTitle %></p>
+                        <h3 style="font-size: 1.1rem; margin-bottom: 0.2rem; word-break: break-all;"><%= concept.title %></h3>
+                        <p style="font-size: 0.85rem; color: var(--accent-primary);">Source: <%= concept.originalName %></p>
                     </div>
 
                     <div style="display: flex; gap: 0.5rem; margin-top: auto;">
-                        <a href="/uploads/<%= file.name %>" target="_blank" class="btn btn-outline" style="flex: 1; justify-content: center; padding: 0.5rem; font-size: 0.8rem;">Open File</a>
-                        <form action="/admin/delete-file" method="POST" style="flex: 1;" onsubmit="return confirm('Delete this file permanently? Metadata will also be removed.')">
-                            <input type="hidden" name="filename" value="<%= file.name %>">
+                        <a href="/view/<%= concept._id %>" target="_blank" class="btn btn-outline" style="flex: 1; justify-content: center; padding: 0.5rem; font-size: 0.8rem;">Open File</a>
+                        <form action="/concept/<%= concept._id %>/delete" method="POST" style="flex: 1;" onsubmit="return confirm('Delete this concept permanently?')">
                             <button type="submit" class="btn btn-danger" style="width: 100%; justify-content: center; padding: 0.5rem; font-size: 0.8rem;">Delete</button>
                         </form>
                     </div>
@@ -74,10 +73,10 @@
             <% }) %>
         </div>
 
-        <% if (files.length === 0) { %>
+        <% if (concepts.length === 0) { %>
             <div class="empty-state" style="margin-top: 4rem;">
-                <h2>Uploads folder is empty</h2>
-                <p>Files will appear here once they are uploaded or pasted.</p>
+                <h2>Database is empty</h2>
+                <p>New concepts will appear here once they are uploaded or pasted.</p>
             </div>
         <% } %>
     </main>
