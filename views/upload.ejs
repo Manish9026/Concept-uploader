@@ -6,8 +6,15 @@
 <body>
     <nav class="navbar">
         <a href="/" class="nav-logo">Concept Vault</a>
-        <div class="nav-links">
-            <a href="/" class="btn btn-outline nav-btn">&larr; Back</a>
+        
+        <div class="menu-toggle" onclick="toggleMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+        <div class="nav-links" id="navLinks">
+            <a href="/" class="btn btn-outline nav-btn">&larr; Back to Library</a>
         </div>
     </nav>
 
@@ -83,6 +90,11 @@
     </main>
 
     <script>
+        function toggleMenu() {
+            document.getElementById('navLinks').classList.toggle('active');
+            document.querySelector('.menu-toggle').classList.toggle('active');
+        }
+
         function switchTab(tabId, el) {
             document.querySelectorAll('.tab').forEach(t => {
                 t.classList.remove('active');

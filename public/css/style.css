@@ -33,35 +33,53 @@ body {
     min-height: 100vh;
 }
 
-/* Navbar with Cutting Edge */
+/* Navbar with Compact Design */
 .navbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.5rem 5%;
+    padding: 0.8rem 5%;
     background: var(--bg-glass);
     backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--glass-border);
     position: sticky;
     top: 0;
     z-index: 1000;
+    height: 70px;
 }
 
 .nav-logo {
     font-family: var(--font-heading);
-    font-size: 1.8rem;
+    font-size: 1.5rem;
     font-weight: 800;
     background: linear-gradient(135deg, #818cf8, #c084fc);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     text-decoration: none;
-    letter-spacing: -1px;
+    letter-spacing: -0.5px;
 }
 
 .nav-links {
     display: flex;
-    gap: 1.5rem;
+    gap: 1.2rem;
     align-items: center;
+}
+
+/* Mobile Menu Toggle */
+.menu-toggle {
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    cursor: pointer;
+    z-index: 1100;
+}
+
+.menu-toggle span {
+    width: 25px;
+    height: 2px;
+    background: var(--text-primary);
+    border-radius: 2px;
+    transition: 0.3s;
 }
 
 /* Container */
@@ -165,14 +183,15 @@ h1 {
 .concept-group {
     background: var(--bg-surface);
     border: 1px solid var(--glass-border);
-    border-radius: 24px;
-    padding: 1.5rem;
+    border-radius: 28px;
+    padding: 2rem;
     transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
     position: relative;
     overflow: hidden;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
 
 .concept-group:hover {
@@ -213,12 +232,57 @@ h1 {
 
 /* Nesting with Modern Polish */
 .nested-wrapper {
-    margin-top: 1rem;
-    padding-left: 1.5rem;
-    border-left: 1px solid var(--glass-border);
+    margin-top: 1.5rem;
+    padding-left: 2rem;
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.2rem;
+}
+
+/* Hierarchical Connectors */
+.nested-wrapper::before {
+    content: '';
+    position: absolute;
+    left: 0.5rem;
+    top: -1rem;
+    bottom: 2rem;
+    width: 2px;
+    background: linear-gradient(180deg, var(--accent-primary), transparent);
+    border-radius: 2px;
+    opacity: 0.3;
+}
+
+.nested-wrapper .concept-group {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.05);
+    padding: 1.2rem;
+    border-radius: 18px;
+    position: relative;
+}
+
+.nested-wrapper .concept-group::before {
+    content: '';
+    position: absolute;
+    left: -1.5rem;
+    top: 50%;
+    width: 1.5rem;
+    height: 2px;
+    background: rgba(99, 102, 241, 0.2);
+}
+
+.nested-wrapper .concept-info h3 {
+    font-size: 1.2rem;
+}
+
+.nested-wrapper .btn-primary {
+    padding: 0.4rem 1rem;
+    font-size: 0.8rem;
+}
+
+.nested-wrapper .concept-group:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--accent-primary);
 }
 
 /* Management Page - Cutting Edge Grid */
@@ -296,20 +360,34 @@ input:focus, select:focus, textarea:focus {
 }
 
 @media (max-width: 768px) {
-    .navbar {
-        flex-direction: column;
-        gap: 1.5rem;
-        padding: 1.5rem;
+    .menu-toggle {
+        display: flex;
     }
-    
+
     .nav-links {
-        width: 100%;
+        position: fixed;
+        top: 0;
+        right: -100%;
+        height: 100vh;
+        width: 80%;
+        max-width: 300px;
+        background: var(--bg-surface);
+        backdrop-filter: blur(30px);
         flex-direction: column;
+        padding: 6rem 2rem 2rem;
+        transition: 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+        border-left: 1px solid var(--glass-border);
+        box-shadow: -10px 0 30px rgba(0,0,0,0.5);
     }
-    
+
+    .nav-links.active {
+        right: 0;
+    }
+
     .controls-bar {
         width: 100%;
         flex-direction: column;
+        gap: 1rem;
     }
     
     .sort-select {
@@ -323,10 +401,6 @@ input:focus, select:focus, textarea:focus {
     .btn {
         width: 100%;
         justify-content: center;
-    }
-    
-    .container {
-        padding: 1.5rem;
     }
 }
 

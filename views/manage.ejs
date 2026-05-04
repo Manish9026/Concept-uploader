@@ -6,7 +6,14 @@
 <body>
     <nav class="navbar">
         <a href="/" class="nav-logo">Concept Vault</a>
-        <div class="nav-links">
+        
+        <div class="menu-toggle" onclick="toggleMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+        <div class="nav-links" id="navLinks">
             <a href="/" class="btn btn-outline nav-btn">&larr; Back to Library</a>
         </div>
     </nav>
@@ -101,6 +108,11 @@
     </main>
 
     <script>
+        function toggleMenu() {
+            document.getElementById('navLinks').classList.toggle('active');
+            document.querySelector('.menu-toggle').classList.toggle('active');
+        }
+
         function toggleSubjectInput(val) {
             const container = document.getElementById('new-subject-container');
             const finalInput = document.getElementById('subject-final');
