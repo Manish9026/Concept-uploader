@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage <%= concept.title %> | Concept Vault</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="nav-logo">Concept Vault</a>
+        <div class="nav-links">
+            <a href="/" class="btn btn-outline nav-btn">&larr; Back to Library</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="manage-grid animate-fade-in">
+            <!-- Details & Update -->
+            <div class="manage-card">
+                <h2>Concept Details</h2>
+                <form action="/concept/<%= concept.id %>/update" method="POST">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="title">Title</label>
+                            <input type="text" id="title" name="title" value="<%= concept.title %>" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="subject">Subject</label>
+                            <input type="text" id="subject" name="subject" value="<%= concept.subject %>" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="sortOrder">Sort Order</label>
+                            <input type="number" id="sortOrder" name="sortOrder" value="<%= concept.sortOrder || 0 %>">
+                        </div>
+                        <div class="form-group">
+                            <label for="parentId">Parent Concept</label>
+                            <select id="parentId" name="parentId">
+                                <option value="">-- No Parent --</option>
+                                <% allConcepts.forEach(c => { %>
+                                    <% if (c.id != concept.id) { %>
+                                        <option value="<%= c.id %>" <%= concept.parentId == c.id ? 'selected' : '' %>>
+                                            <%= c.subject %>: <%= c.title %>
+                                        </option>
+                                    <% } %>
+                                <% }) %>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">Save Changes</button>
+                </form>
+
+                <div class="danger-zone">
+                    <p style="color: #ef4444; font-size: 0.9rem; margin-bottom: 1rem;">Delete this concept permanently.</p>
+                    <form action="/concept/<%= concept.id %>/delete" method="POST" onsubmit="return confirm('Are you sure? This cannot be undone.')">
+                        <button type="submit" class="btn btn-danger" style="width: 100%; justify-content: center;">Delete Concept</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Content Management -->
+            <div class="manage-card">
+                <h2>Content Actions</h2>
+                
+                <div style="margin-bottom: 2rem;">
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">Directly edit the HTML code using our built-in VS Code-style editor.</p>
+                    <a href="/concept/<%= concept.id %>/edit" class="btn btn-primary" style="width: 100%; justify-content: center; background: #22c55e;">
+                        Open Code Editor 📝
+                    </a>
+                </div>
+
+                <div style="padding-top: 2rem; border-top: 1px solid var(--glass-border);">
+                    <h3>Replace Source File</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.9rem;">Current: <%= concept.originalName %></p>
+                    <form action="/concept/<%= concept.id %>/replace" method="POST" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <div class="file-input-wrapper" style="padding: 1rem;">
+                                <p id="file-name-display" style="font-size: 0.8rem;">Click to select new file</p>
+                                <input type="file" id="conceptFile" name="conceptFile" accept=".html" required onchange="updateFileName()">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-outline" style="width: 100%; justify-content: center;">Upload & Replace</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function updateFileName() {
+            const input = document.getElementById('conceptFile');
+            const display = document.getElementById('file-name-display');
+            if (input.files.length > 0) {
+                display.innerText = "Selected: " + input.files[0].name;
+            }
+        }
+    </script>
+</body>
+</html>

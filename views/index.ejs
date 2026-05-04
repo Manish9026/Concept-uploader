@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Concept Vault | Knowledge Repository</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="nav-logo">Concept Vault</a>
+        <div class="nav-links">
+            <div class="controls-bar" style="margin-bottom: 0;">
+                <select id="sort" class="sort-select" onchange="window.location.href='/?sort='+this.value">
+                    <option value="order-asc" <%= sortBy === 'order-asc' ? 'selected' : '' %>>Sort Order</option>
+                    <option value="date-desc" <%= sortBy === 'date-desc' ? 'selected' : '' %>>Latest First</option>
+                    <option value="title-asc" <%= sortBy === 'title-asc' ? 'selected' : '' %>>Title A-Z</option>
+                </select>
+            </div>
+            <a href="/upload" class="btn btn-primary nav-btn">New Concept +</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <% if (Object.keys(subjects).length === 0) { %>
+            <div class="empty-state animate-fade-in">
+                <h2>No concepts found yet</h2>
+                <p>Start by uploading your first HTML concept file.</p>
+                <br>
+                <a href="/upload" class="btn btn-outline">Go to Upload</a>
+            </div>
+        <% } else { %>
+            <% for (let subject in subjects) { %>
+                <section class="subject-section animate-fade-in">
+                    <div class="subject-header">
+                        <h2 class="subject-title"><%= subject %></h2>
+                    </div>
+                    
+                    <div class="concept-list">
+                        <% 
+                            // Filter for top-level concepts (no parent or parent not in this subject)
+                            const topLevel = subjects[subject].filter(c => !c.parentId);
+                            
+                            function renderConcept(concept, allInSubject) {
+                                const children = allInSubject.filter(c => c.parentId == concept.id);
+                        %>
+                            <div class="concept-group">
+                                <div class="concept-item">
+                                    <div class="concept-info">
+                                        <h3><%= concept.title %></h3>
+                                        <div class="concept-meta">
+                                            <span>📅 <%= new Date(concept.uploadDate).toLocaleDateString() %></span>
+                                            <% if (concept.sortOrder) { %>
+                                                <span>🔢 Order: <%= concept.sortOrder %></span>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                    <div class="concept-actions">
+                                        <a href="/uploads/<%= concept.filename %>" class="btn btn-outline" style="padding: 0.5rem 1rem;" target="_blank">View</a>
+                                        <a href="/concept/<%= concept.id %>" class="btn btn-outline" style="padding: 0.5rem 1rem;">Manage ⚙️</a>
+                                    </div>
+                                </div>
+                                
+                                <% if (children.length > 0) { %>
+                                    <div class="nested-wrapper">
+                                        <% children.forEach(child => { %>
+                                            <% renderConcept(child, allInSubject) %>
+                                        <% }) %>
+                                    </div>
+                                <% } %>
+                            </div>
+                        <% 
+                            }
+                            topLevel.forEach(concept => renderConcept(concept, subjects[subject]));
+                        %>
+                    </div>
+                </section>
+            <% } %>
+        <% } %>
+    </main>
+
+    <footer class="container" style="text-align: center; padding: 4rem 0; color: var(--text-secondary); font-size: 0.9rem;">
+        <p>&copy; 2026 Concept Vault. Designed with &hearts; for learning.</p>
+    </footer>
+</body>
+</html>

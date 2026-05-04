@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editing <%= concept.title %> | Concept Vault</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- Monaco Editor Loader -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+</head>
+<body class="editor-page-body">
+    <div class="editor-header">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <a href="/concept/<%= concept.id %>" class="btn btn-outline" style="padding: 0.5rem 1rem;">&larr; Exit</a>
+            <h2 style="font-size: 1.2rem; margin: 0;"><%= concept.title %> <span style="color: var(--text-secondary); font-weight: 400; font-size: 0.9rem;">(<%= concept.filename %>)</span></h2>
+        </div>
+        <div style="display: flex; gap: 1rem;">
+            <span id="save-status" style="color: var(--text-secondary); font-size: 0.9rem; align-self: center; margin-right: 1rem;"></span>
+            <button onclick="saveContent()" class="btn btn-primary" style="padding: 0.5rem 2rem;">Save File</button>
+        </div>
+    </div>
+
+    <div class="editor-container">
+        <div id="monaco-container"></div>
+    </div>
+
+    <!-- Hidden element to safely store content -->
+    <textarea id="raw-content" style="display: none;"><%= content %></textarea>
+
+    <script>
+        let editor;
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
+        
+        require(['vs/editor/editor.main'], function() {
+            const initialContent = document.getElementById('raw-content').value;
+            editor = monaco.editor.create(document.getElementById('monaco-container'), {
+                value: initialContent,
+                language: 'html',
+                theme: 'vs-dark',
+                automaticLayout: true,
+                fontSize: 14,
+                minimap: { enabled: true },
+                padding: { top: 20 }
+            });
+
+            // Keyboard shortcut for saving (Ctrl+S / Cmd+S)
+            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, function() {
+                saveContent();
+            });
+        });
+
+        async function saveContent() {
+            const status = document.getElementById('save-status');
+            status.innerText = 'Saving...';
+            
+            const content = editor.getValue();
+            try {
+                const response = await fetch('/concept/<%= concept.id %>/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content })
+                });
+                
+                if (response.ok) {
+                    status.innerText = 'Last saved: ' + new Date().toLocaleTimeString();
+                    status.style.color = '#22c55e';
+                } else {
+                    throw new Error('Save failed');
+                }
+            } catch (err) {
+                status.innerText = 'Error saving!';
+                status.style.color = '#ef4444';
+            }
+        }
+    </script>
+</body>
+</html>
