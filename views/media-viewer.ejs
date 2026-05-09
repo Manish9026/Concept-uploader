@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('partials/head') %>
+    <style>
+        .viewer-container {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 56px);
+            background: #000;
+            transition: all 0.3s ease;
+        }
+        .viewer-header {
+            padding: 0.8rem 5%;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        .viewer-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .viewer-content img {
+            max-width: 98%;
+            max-height: 98%;
+            object-fit: contain;
+            box-shadow: 0 0 40px rgba(0,0,0,0.5);
+            border-radius: 4px;
+        }
+        .viewer-content iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+        .viewer-content video {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        .fallback-message {
+            text-align: center;
+            color: var(--text-secondary);
+            max-width: 400px;
+            padding: 2rem;
+        }
+        .fallback-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* ─── READ MODE ─── */
+        body.read-mode .navbar, 
+        body.read-mode .viewer-header {
+            display: none !important;
+        }
+        body.read-mode .viewer-container {
+            height: 100vh;
+        }
+        
+        .read-mode-toggle {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 1001;
+            background: rgba(99, 102, 241, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            backdrop-filter: blur(8px);
+            transition: all 0.2s ease;
+        }
+        .read-mode-toggle:hover {
+            transform: scale(1.1);
+            background: var(--accent-primary);
+        }
+        body.read-mode .read-mode-toggle {
+            background: rgba(255,255,255,0.1);
+            opacity: 0.5;
+        }
+        body.read-mode .read-mode-toggle:hover {
+            opacity: 1;
+            background: rgba(255,255,255,0.2);
+        }
+
+        @media (max-width: 768px) {
+            .viewer-header h2 { font-size: 0.9rem; }
+            .viewer-header p { font-size: 0.7rem; }
+            .viewer-header .btn { padding: 0.4rem 0.8rem; font-size: 0.7rem; }
+            .read-mode-toggle { width: 34px; height: 34px; top: 10px; right: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <button class="read-mode-toggle" onclick="toggleReadMode()" title="Toggle Read Mode">
+        <i data-lucide="maximize" id="read-mode-icon"></i>
+    </button>
+    <nav class="navbar">
+        <a href="/" class="nav-logo">Concept Vault</a>
+        <div class="nav-links">
+            <a href="/concept/<%= concept._id %>" class="btn btn-outline nav-btn"><i data-lucide="settings"></i> Manage</a>
+            <a href="/" class="btn btn-primary nav-btn"><i data-lucide="layout-grid"></i> Library</a>
+        </div>
+    </nav>
+
+    <div class="viewer-container">
+        <div class="viewer-header">
+            <div>
+                <h2 style="font-size:1.1rem;margin:0;"><%= concept.title %></h2>
+                <p style="font-size:0.75rem;color:var(--text-secondary);margin:0;"><i data-lucide="file"></i> <%= concept.media.fileName %></p>
+            </div>
+            <a href="/concept/<%= concept._id %>/media/view" download="<%= concept.media.fileName %>" class="btn btn-outline" style="font-size:0.8rem;">
+                <i data-lucide="download"></i> Download
+            </a>
+        </div>
+        
+        <div class="viewer-content">
+            <% if (concept.media.contentType.startsWith('image/')) { %>
+                <img src="/concept/<%= concept._id %>/media/view" alt="<%= concept.media.fileName %>">
+            <% } else if (concept.media.contentType === 'application/pdf') { %>
+                <iframe src="/concept/<%= concept._id %>/media/view#toolbar=0"></iframe>
+            <% } else if (concept.media.contentType.startsWith('video/')) { %>
+                <video controls autoplay>
+                    <source src="/concept/<%= concept._id %>/media/view" type="<%= concept.media.contentType %>">
+                    Your browser does not support the video tag.
+                </video>
+        <% } else if (concept.media.contentType.includes('wordprocessingml') || concept.media.fileName.endsWith('.docx')) { %>
+            <style>
+                #docx-container {
+                    width: 100%;
+                    height: 100%;
+                    overflow-y: auto;
+                    background: #e5e5f0;
+                    padding: 40px 0;
+                    display: block; /* Standard block for scrolling */
+                }
+                #docx-render-area {
+                    width: 100%;
+                    display: block;
+                }
+                /* The Actual Document Box */
+                article.docx {
+                    background: #ffffff !important;
+                    color: #000000 !important;
+                    margin: 0 auto 50px auto !important;
+                    max-width: 900px !important;
+                    width: 92% !important;
+                    border: 12px solid #1e40af !important; /* Thick Blue Border */
+                    box-shadow: 0 20px 60px rgba(0,0,0,0.7) !important;
+                    padding: 60px 70px !important;
+                    min-height: auto !important;
+                    display: block !important;
+                    box-sizing: border-box !important;
+                    overflow: visible !important;
+                }
+                /* Containment */
+                article.docx * { 
+                    max-width: 100% !important; 
+                    box-sizing: border-box !important;
+                    word-break: break-word !important;
+                }
+                article.docx table { width: 100% !important; table-layout: fixed !important; }
+                article.docx img { height: auto !important; }
+                
+                @media (max-width: 768px) {
+                    #docx-container { padding: 0; }
+                    article.docx { 
+                        width: 100% !important; 
+                        max-width: 100% !important;
+                        border-width: 8px !important; 
+                        padding: 25px 15px !important;
+                        border-radius: 0;
+                    }
+                }
+            </style>
+            <div id="docx-container">
+                <div id="docx-render-area"></div>
+            </div>
+            <script src="https://unpkg.com/jszip/dist/jszip.min.js"></script>
+            <script src="https://unpkg.com/docx-preview/dist/docx-preview.js"></script>
+            <script>
+                async function renderDocx() {
+                    const renderArea = document.getElementById('docx-render-area');
+                    try {
+                        const response = await fetch('/concept/<%= concept._id %>/media/view');
+                        const blob = await response.blob();
+                        await docx.renderAsync(blob, renderArea, null, {
+                            className: "docx",
+                            inWrapper: false,
+                            ignoreWidth: true,
+                            ignoreHeight: true
+                        });
+                        
+                        // Handle horizontal scaling only if absolutely needed
+                        const article = renderArea.querySelector('article');
+                        if (article) {
+                            const fitWidth = () => {
+                                article.style.transform = '';
+                                const containerWidth = document.getElementById('docx-container').clientWidth;
+                                const contentWidth = article.scrollWidth;
+                                if (contentWidth > containerWidth && containerWidth > 0) {
+                                    const scale = (containerWidth - 20) / contentWidth;
+                                    article.style.transform = `scale(${scale})`;
+                                    article.style.transformOrigin = 'top center';
+                                }
+                            };
+                            setTimeout(fitWidth, 200);
+                            window.addEventListener('resize', fitWidth);
+                        }
+                    } catch (err) {
+                        console.error('Docx rendering failed:', err);
+                        renderArea.innerHTML = `<div style="padding:40px;text-align:center;color:#666;">
+                            <h3>Preview Failed</h3>
+                            <p>Unable to render this document. Please download it to view.</p>
+                        </div>`;
+                    }
+                }
+                renderDocx();
+            </script>
+        <% } else { %>
+                <div class="fallback-message">
+                    <div class="fallback-icon"><i data-lucide="file-question" style="width:64px;height:64px;"></i></div>
+                    <h3>Preview Not Available</h3>
+                    <p>The file type <strong><%= concept.media.contentType %></strong> cannot be previewed directly in the browser.</p>
+                    <br>
+                    <a href="/concept/<%= concept._id %>/media/view" download="<%= concept.media.fileName %>" class="btn btn-primary">
+                        <i data-lucide="download"></i> Download to View
+                    </a>
+                </div>
+            <% } %>
+        </div>
+    </div>
+
+    <script>
+        function toggleReadMode() {
+            document.body.classList.toggle('read-mode');
+            const icon = document.getElementById('read-mode-icon');
+            if (document.body.classList.contains('read-mode')) {
+                icon.setAttribute('data-lucide', 'minimize');
+            } else {
+                icon.setAttribute('data-lucide', 'maximize');
+            }
+            lucide.createIcons();
+        }
+        lucide.createIcons();
+    </script>
+</body>
+</html>

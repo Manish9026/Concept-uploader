@@ -86,6 +86,52 @@
                     </form>
                 </div>
 
+                <!-- Media Management -->
+                <div style="padding-top:1.5rem;border-top:1px solid var(--glass-border);margin-bottom:1.5rem;">
+                    <label style="margin-bottom:0.6rem;">Attached Media (PDF, Image, Video)</label>
+                    <% if (concept.media && concept.media.fileName) { %>
+                        <div class="media-preview" style="margin-bottom:1rem;background:rgba(255,255,255,0.03);border-radius:8px;padding:0.8rem;border:1px solid var(--glass-border);">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.8rem;">
+                                <span style="font-size:0.85rem;color:var(--text-secondary);display:flex;align-items:center;gap:0.4rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                    <i data-lucide="file-text" style="width:14px;height:14px;"></i> <%= concept.media.fileName %>
+                                </span>
+                                <div style="display:flex;gap:0.3rem;align-items:center;">
+                                    <a href="/concept/<%= concept._id %>/media/viewer" target="_blank" class="btn-icon" style="color:var(--accent-primary);border:none;background:transparent;" title="Open in Full Viewer"><i data-lucide="maximize-2"></i></a>
+                                    <form action="/concept/<%= concept._id %>/media/delete" method="POST" style="display:inline;" onsubmit="return confirm('Remove this media file?')">
+                                        <button type="submit" class="btn-icon" style="color:#f43f5e;padding:0.2rem;background:transparent;border:none;" title="Remove Media"><i data-lucide="x"></i></button>
+                                    </form>
+                                </div>
+                            </div>
+                            
+                            <div class="media-render" style="border-radius:6px;overflow:hidden;background:#000;display:flex;justify-content:center;">
+                                <% if (concept.media.contentType.startsWith('image/')) { %>
+                                    <img src="/concept/<%= concept._id %>/media/view" style="width:100%;display:block;max-height:250px;object-fit:contain;">
+                                <% } else if (concept.media.contentType === 'application/pdf') { %>
+                                    <iframe src="/concept/<%= concept._id %>/media/view" style="width:100%;height:250px;border:none;"></iframe>
+                                <% } else if (concept.media.contentType.startsWith('video/')) { %>
+                                    <video controls style="width:100%;max-height:250px;">
+                                        <source src="/concept/<%= concept._id %>/media/view" type="<%= concept.media.contentType %>">
+                                    </video>
+                                <% } else { %>
+                                    <div style="padding:1.5rem;text-align:center;">
+                                        <a href="/concept/<%= concept._id %>/media/view" target="_blank" class="btn btn-outline" style="font-size:0.75rem;">
+                                            <i data-lucide="download"></i> Download <%= concept.media.contentType.split('/')[1].toUpperCase() %>
+                                        </a>
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
+                    <% } %>
+                    
+                    <form action="/concept/<%= concept._id %>/media" method="POST" enctype="multipart/form-data" style="display:flex;gap:0.5rem;">
+                        <input type="file" name="mediaFile" required style="flex:1;font-size:0.8rem;">
+                        <button type="submit" class="btn btn-outline" style="white-space:nowrap;padding:0.4rem 0.8rem;font-size:0.85rem;">
+                            <i data-lucide="paperclip"></i> <%= (concept.media && concept.media.fileName) ? 'Replace' : 'Attach' %>
+                        </button>
+                    </form>
+                    <p style="color:var(--text-secondary);font-size:0.7rem;margin-top:0.5rem;opacity:0.7;">Max 15MB. Optimized automatically.</p>
+                </div>
+
                 <!-- Public URL -->
                 <div style="padding:1rem;background:rgba(99,102,241,0.04);border-radius:10px;border:1px dashed rgba(99,102,241,0.15);margin-bottom:1.5rem;">
                     <div style="font-size:0.75rem;font-weight:600;color:var(--accent-primary);margin-bottom:0.3rem;">Public URL</div>

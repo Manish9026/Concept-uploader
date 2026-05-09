@@ -279,6 +279,16 @@ input:focus, select:focus, textarea:focus {
 }
 .animate-fade-in { animation: fadeInUp 0.5s cubic-bezier(0.23,1,0.32,1) forwards; }
 
+/* ─── MEDIA PREVIEW ─── */
+.media-preview { transition: transform 0.3s ease; }
+.media-render {
+    background: #000;
+    box-shadow: inset 0 0 20px rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+.media-render iframe { background: #fff; }
+.media-render video, .media-render img { max-width: 100%; height: auto; }
+
 /* ─── FOOTER ─── */
 .site-footer {
     text-align: center; padding: 2rem 0; color: var(--text-secondary);

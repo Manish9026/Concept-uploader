@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs-extra');
 const session = require('express-session');
 const mongoose = require('mongoose');
+const sharp = require('sharp');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -25,7 +26,12 @@ const ConceptSchema = new mongoose.Schema({
     uploadDate: { type: Date, default: Date.now },
     sortOrder: { type: Number, default: 0 },
     parentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Concept', default: null },
-    originalName: { type: String }
+    originalName: { type: String },
+    media: {
+        data: Buffer,
+        contentType: String,
+        fileName: String
+    }
 });
 
 const Subject = mongoose.model('Subject', SubjectSchema);
@@ -55,6 +61,20 @@ const upload = multer({
             cb(null, true);
         } else {
             cb(new Error('Only .html files are allowed'));
+        }
+    }
+});
+
+const mediaUpload = multer({
+    storage: storage,
+    limits: { fileSize: 15 * 1024 * 1024 }, // 15MB limit
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp4', '.webm', '.zip', '.docx'];
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (allowedTypes.includes(ext) || file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/') || file.mimetype === 'application/pdf') {
+            cb(null, true);
+        } else {
+            cb(new Error('File type not allowed'));
         }
     }
 });
@@ -209,6 +229,86 @@ app.post('/concept/:id/replace', upload.single('conceptFile'), async (req, res) 
             originalName: req.file.originalname
         });
 
+        res.redirect(`/concept/${req.params.id}`);
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+});
+
+// Media Routes
+app.post('/concept/:id/media', mediaUpload.single('mediaFile'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).send('No file uploaded');
+        
+        let buffer = req.file.buffer;
+        let contentType = req.file.mimetype;
+
+        // Optimization for images
+        if (contentType.startsWith('image/') && !contentType.includes('gif')) {
+            try {
+                buffer = await sharp(buffer)
+                    .resize(1600, null, { withoutEnlargement: true, fit: 'inside' })
+                    .jpeg({ quality: 80, progressive: true })
+                    .toBuffer();
+                contentType = 'image/jpeg';
+            } catch (sharpError) {
+                console.error('Sharp optimization failed, storing original:', sharpError);
+            }
+        }
+
+        await Concept.findByIdAndUpdate(req.params.id, {
+            media: {
+                data: buffer,
+                contentType: contentType,
+                fileName: req.file.originalname
+            }
+        });
+
+        res.redirect(`/concept/${req.params.id}`);
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+});
+
+app.get('/concept/:id/media/view', async (req, res) => {
+    try {
+        const concept = await Concept.findById(req.params.id);
+        if (!concept || !concept.media || !concept.media.data) {
+            return res.status(404).send('Media not found');
+        }
+        
+        // Clear any previous headers that might force download
+        res.removeHeader('Content-Disposition');
+        
+        res.set('Content-Type', concept.media.contentType);
+        res.set('Content-Disposition', 'inline'); 
+        res.send(concept.media.data);
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+});
+
+app.get('/concept/:id/media/viewer', async (req, res) => {
+    try {
+        const concept = await Concept.findById(req.params.id);
+        if (!concept || !concept.media) return res.status(404).send('Media not found');
+        
+        res.render('media-viewer', { 
+            concept,
+            seo: { 
+                title: `Viewing: ${concept.media.fileName}`, 
+                description: `Viewing media for ${concept.title}`,
+                path: `/concept/${concept._id}/media/viewer` 
+            }
+        });
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+});
+
+app.post('/concept/:id/media/delete', async (req, res) => {
+    try {
+        await Concept.findByIdAndUpdate(req.params.id, { $unset: { media: 1 } });
         res.redirect(`/concept/${req.params.id}`);
     } catch (err) {
         res.status(500).send(err.message);

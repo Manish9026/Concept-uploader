@@ -67,6 +67,9 @@
                                         </div>
                                     </div>
                                     <div class="card-actions">
+                                        <% if (concept.media && concept.media.fileName) { %>
+                                            <a href="/concept/<%= concept._id %>/media/viewer" target="_blank" class="btn-icon" title="View Media" style="color:var(--accent-primary);"><i data-lucide="paperclip"></i></a>
+                                        <% } %>
                                         <a href="/view/<%= concept._id %>" target="_blank" class="btn-icon" title="View"><i data-lucide="eye"></i></a>
                                         <a href="/concept/<%= concept._id %>" class="btn-icon" title="Manage"><i data-lucide="settings"></i></a>
                                     </div>
