@@ -18,6 +18,11 @@
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
+html {
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+}
+
 body {
     background: var(--bg-deep);
     background-image:
@@ -26,8 +31,9 @@ body {
     color: var(--text-primary);
     font-family: var(--font-main);
     line-height: 1.6;
-    min-height: 100vh;
-    overflow-x: hidden;
+    min-height: 100dvh;
+    overflow-x: clip; /* Fix: Prevents horizontal scroll while keeping header sticky */
+    position: relative;
 }
 
 /* ─── Lucide icon sizing ─── */
@@ -58,6 +64,13 @@ body {
     border-radius: 8px; padding: 0.4rem 0.8rem; color: var(--text-primary);
     font-family: inherit; font-size: 0.85rem; cursor: pointer;
 }
+.mobile-close-btn { display: none; }
+.nav-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px); z-index: 950;
+    opacity: 0; pointer-events: none; transition: 0.4s;
+}
+.nav-overlay.active { opacity: 1; pointer-events: auto; }
 
 /* ─── CONTAINER ─── */
 .container { max-width: 1200px; margin: 0 auto; padding: 1.5rem 4%; }
@@ -242,18 +255,38 @@ input:focus, select:focus, textarea:focus {
 @media (max-width: 768px) {
     .menu-toggle { display: flex; }
     .nav-links {
-        position: fixed; top: 0; right: -100%; height: 100vh;
-        width: 80%; max-width: 280px;
+        position: fixed; top: 0; right: 0; bottom: 0;
+        height: 100vh; height: 100dvh;
+        width: 280px;
         background: var(--bg-surface); backdrop-filter: blur(30px);
         flex-direction: column; padding: 5rem 1.5rem 1.5rem;
-        transition: 0.4s cubic-bezier(0.23,1,0.32,1);
+        transition: transform 0.4s cubic-bezier(0.23,1,0.32,1), opacity 0.3s ease;
         border-left: 1px solid var(--glass-border);
         box-shadow: -8px 0 24px rgba(0,0,0,0.5);
+        z-index: 1100;
+        transform: translateX(100%); /* Restore animation */
+        visibility: hidden;
+        display: flex;
+        pointer-events: none;
     }
-    .nav-links.active { right: 0; }
+    .nav-links.active { 
+        transform: translateX(0);
+        visibility: visible;
+        opacity: 1;
+    }
     .controls-bar { width: 100%; flex-direction: column; gap: 0.6rem; }
     .sort-select { width: 100% !important; }
     .btn { width: 100%; justify-content: center; }
+    
+    .mobile-close-btn {
+        display: flex; align-items: center; justify-content: center;
+        position: absolute; top: 1.25rem; right: 1.25rem;
+        width: 36px; height: 36px; border-radius: 10px;
+        background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border);
+        color: var(--text-primary); cursor: pointer;
+    }
+    .mobile-close-btn:active { background: rgba(255,255,255,0.1); }
+    
     .container { padding: 1rem 3%; }
 
     .tree-rail { width: 18px; }

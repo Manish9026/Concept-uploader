@@ -9,7 +9,11 @@
         <div class="menu-toggle" onclick="toggleMenu()">
             <span></span><span></span><span></span>
         </div>
+        <div class="nav-overlay" id="navOverlay" onclick="toggleMenu()"></div>
         <div class="nav-links" id="navLinks">
+            <div class="mobile-close-btn" onclick="toggleMenu()">
+                <i data-lucide="x"></i>
+            </div>
             <div class="controls-bar" style="display:flex;gap:0.5rem;">
                 <select id="subject-filter" class="sort-select" onchange="filterBySubject(this.value)">
                     <option value="all">All Subjects</option>
@@ -201,6 +205,7 @@
 
         function toggleMenu() {
             document.getElementById('navLinks').classList.toggle('active');
+            document.getElementById('navOverlay').classList.toggle('active');
         }
 
         function filterBySubject(subject) {
