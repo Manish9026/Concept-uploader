@@ -49,7 +49,11 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'fallback_secret',
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 3600000 }
+    cookie: { 
+        maxAge: 24 * 60 * 60 * 1000, // 1 Day
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true
+    }
 }));
 
 // Multer (Memory Storage for optimized DB transfer)
@@ -77,6 +81,53 @@ const mediaUpload = multer({
             cb(new Error('File type not allowed'));
         }
     }
+});
+
+// Security Middleware
+const isAdmin = (req, res, next) => {
+    if (req.session.isAdmin) return next();
+    if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    res.redirect('/auth/gate?returnTo=' + encodeURIComponent(req.originalUrl));
+};
+
+// Authentication Routes
+app.get('/auth/gate', (req, res) => {
+    res.render('auth-gate', { 
+        error: null,
+        returnTo: req.query.returnTo || '/',
+        seo: { title: 'Secured Access', description: 'Restricted area.', path: '/auth/gate' }
+    });
+});
+
+app.post('/auth/gate', (req, res) => {
+    const { tokenCode, returnTo } = req.body;
+    if (tokenCode === process.env.ADMIN_SECRET) {
+        req.session.isAdmin = true;
+        res.redirect(returnTo || '/');
+    } else {
+        res.render('auth-gate', { 
+            error: 'Invalid Token Code!',
+            returnTo: returnTo || '/',
+            seo: { title: 'Secured Access', description: 'Restricted area.', path: '/auth/gate' }
+        });
+    }
+});
+
+app.post('/auth/verify', (req, res) => {
+    const { tokenCode } = req.body;
+    if (tokenCode === process.env.ADMIN_SECRET) {
+        req.session.isAdmin = true;
+        res.json({ success: true });
+    } else {
+        res.json({ success: false, error: 'Invalid Token Code!' });
+    }
+});
+
+app.get('/auth/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/');
 });
 
 // Routes
@@ -107,6 +158,7 @@ app.get('/', async (req, res) => {
             sortBy, 
             allConcepts: concepts,
             allSubjects: allSubjects.map(s => s.name),
+            isAuthenticated: !!req.session.isAdmin,
             seo: {
                 title: 'Knowledge Repository',
                 description: 'A premium vault for educational concepts, computer science guides, and interactive study materials.',
@@ -119,7 +171,7 @@ app.get('/', async (req, res) => {
     }
 });
 
-app.get('/upload', async (req, res) => {
+app.get('/upload', isAdmin, async (req, res) => {
     try {
         const concepts = await Concept.find().lean();
         const allSubjects = await Subject.find().lean();
@@ -138,7 +190,7 @@ app.get('/upload', async (req, res) => {
     }
 });
 
-app.post('/upload', upload.single('conceptFile'), async (req, res) => {
+app.post('/upload', isAdmin, upload.single('conceptFile'), async (req, res) => {
     try {
         const { title, subject, pasteContent, sortOrder, parentId } = req.body;
         let htmlContent;
@@ -174,7 +226,7 @@ app.post('/upload', upload.single('conceptFile'), async (req, res) => {
     }
 });
 
-app.get('/concept/:id', async (req, res) => {
+app.get('/concept/:id', isAdmin, async (req, res) => {
     try {
         const concept = await Concept.findById(req.params.id);
         if (!concept) return res.status(404).send('Concept not found');
@@ -197,7 +249,7 @@ app.get('/concept/:id', async (req, res) => {
     }
 });
 
-app.post('/concept/:id/update', async (req, res) => {
+app.post('/concept/:id/update', isAdmin, async (req, res) => {
     try {
         const { title, subject, sortOrder, parentId } = req.body;
         
@@ -220,7 +272,7 @@ app.post('/concept/:id/update', async (req, res) => {
     }
 });
 
-app.post('/concept/:id/replace', upload.single('conceptFile'), async (req, res) => {
+app.post('/concept/:id/replace', isAdmin, upload.single('conceptFile'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).send('No file uploaded');
         
@@ -236,7 +288,7 @@ app.post('/concept/:id/replace', upload.single('conceptFile'), async (req, res) 
 });
 
 // Media Routes
-app.post('/concept/:id/media', mediaUpload.single('mediaFile'), async (req, res) => {
+app.post('/concept/:id/media', isAdmin, mediaUpload.single('mediaFile'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).send('No file uploaded');
         
@@ -306,7 +358,7 @@ app.get('/concept/:id/media/viewer', async (req, res) => {
     }
 });
 
-app.post('/concept/:id/media/delete', async (req, res) => {
+app.post('/concept/:id/media/delete', isAdmin, async (req, res) => {
     try {
         await Concept.findByIdAndUpdate(req.params.id, { $unset: { media: 1 } });
         res.redirect(`/concept/${req.params.id}`);
@@ -315,7 +367,7 @@ app.post('/concept/:id/media/delete', async (req, res) => {
     }
 });
 
-app.get('/concept/:id/edit', async (req, res) => {
+app.get('/concept/:id/edit', isAdmin, async (req, res) => {
     try {
         const concept = await Concept.findById(req.params.id);
         if (!concept) return res.status(404).send('Concept not found');
@@ -335,7 +387,7 @@ app.get('/concept/:id/edit', async (req, res) => {
     }
 });
 
-app.post('/concept/:id/save', async (req, res) => {
+app.post('/concept/:id/save', isAdmin, async (req, res) => {
     try {
         const { content } = req.body;
         await Concept.findByIdAndUpdate(req.params.id, { htmlContent: content });
@@ -345,7 +397,7 @@ app.post('/concept/:id/save', async (req, res) => {
     }
 });
 
-app.post('/concept/:id/delete', async (req, res) => {
+app.post('/concept/:id/delete', isAdmin, async (req, res) => {
     try {
         await Concept.findByIdAndDelete(req.params.id);
         res.redirect('/');
@@ -387,45 +439,6 @@ app.get('/sitemap.xml', async (req, res) => {
     xml += '\n</urlset>';
     res.header('Content-Type', 'application/xml');
     res.send(xml);
-});
-
-// Admin Routes
-const isAdmin = (req, res, next) => {
-    if (req.session.isAdmin) return next();
-    res.redirect('/admin/login');
-};
-
-app.get('/admin/login', (req, res) => {
-    res.render('admin-login', { 
-        error: null,
-        seo: { title: 'Admin Login', description: 'Restricted area.', path: '/admin/login' }
-    });
-});
-
-app.post('/admin/login', (req, res) => {
-    const { secretCode } = req.body;
-    if (secretCode === process.env.ADMIN_SECRET) {
-        req.session.isAdmin = true;
-        res.redirect('/admin/dashboard');
-    } else {
-        res.render('admin-login', { 
-            error: 'Invalid secret code!',
-            seo: { title: 'Admin Login', description: 'Restricted area.', path: '/admin/login' }
-        });
-    }
-});
-
-app.get('/admin/dashboard', isAdmin, async (req, res) => {
-    const concepts = await Concept.find().lean();
-    res.render('admin-dashboard', { 
-        concepts,
-        seo: { title: 'Admin Dashboard', description: 'System management.', path: '/admin/dashboard' }
-    });
-});
-
-app.get('/admin/logout', (req, res) => {
-    req.session.destroy();
-    res.redirect('/');
 });
 
 app.listen(PORT, () => {

@@ -24,6 +24,9 @@
                 </select>
             </div>
             <a href="/upload" class="btn btn-primary nav-btn">New Concept +</a>
+            <% if (isAuthenticated) { %>
+                <a href="/auth/logout" class="btn btn-outline nav-btn" title="Logout"><i data-lucide="log-out"></i></a>
+            <% } %>
         </div>
     </nav>
 
@@ -98,7 +101,98 @@
         <p>&copy; 2026 Concept Vault. Designed with &hearts; for learning.</p>
     </footer>
 
+    <!-- Auth Modal Popup -->
+    <div id="authModal" class="modal-overlay" style="display: none;">
+        <div class="auth-modal-card">
+            <div class="modal-close" onclick="closeAuthModal()"><i data-lucide="x"></i></div>
+            <div class="modal-icon"><i data-lucide="shield-lock"></i></div>
+            <h3>Secured Access</h3>
+            <p>Enter token code to continue</p>
+            <div id="modalError" class="modal-error" style="display: none;"></div>
+            <input type="password" id="tokenInput" placeholder="Token Code" onkeyup="if(event.key==='Enter') verifyToken()">
+            <button onclick="verifyToken()" id="verifyBtn" class="btn btn-primary" style="width:100%; margin-top:1rem;">Verify & Open</button>
+        </div>
+    </div>
+
+    <style>
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
+            display: flex; align-items: center; justify-content: center; z-index: 2000;
+        }
+        .auth-modal-card {
+            background: #161622; padding: 2.5rem; border-radius: 20px; width: 90%; max-width: 360px;
+            border: 1px solid rgba(255,255,255,0.1); text-align: center; position: relative;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+        .modal-close { position: absolute; top: 1rem; right: 1rem; cursor: pointer; color: #64748b; }
+        .modal-icon { width: 50px; height: 50px; background: rgba(99,102,241,0.1); color: #6366f1; 
+                      border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; }
+        .modal-error { background: rgba(239,68,68,0.1); color: #ef4444; padding: 0.5rem; border-radius: 8px; font-size: 0.8rem; margin-bottom: 1rem; }
+        #tokenInput { width: 100%; background: #0f172a; border: 1px solid rgba(255,255,255,0.1); 
+                      padding: 0.75rem; border-radius: 10px; color: white; box-sizing: border-box; }
+        #tokenInput:focus { outline: none; border-color: #6366f1; }
+    </style>
+
     <script>
+        const isAuthenticated = <%= isAuthenticated %>;
+        let pendingUrl = null;
+
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('a');
+            if (!link || isAuthenticated) return;
+
+            const href = link.getAttribute('href');
+            if (href === '/upload' || href.startsWith('/concept/')) {
+                // If it's not a viewer link (viewer is public)
+                if (!href.includes('/media/viewer') && !href.includes('/view/')) {
+                    e.preventDefault();
+                    pendingUrl = href;
+                    showAuthModal();
+                }
+            }
+        });
+
+        function showAuthModal() {
+            document.getElementById('authModal').style.display = 'flex';
+            document.getElementById('tokenInput').focus();
+        }
+
+        function closeAuthModal() {
+            document.getElementById('authModal').style.display = 'none';
+            document.getElementById('modalError').style.display = 'none';
+        }
+
+        async function verifyToken() {
+            const token = document.getElementById('tokenInput').value;
+            const btn = document.getElementById('verifyBtn');
+            const error = document.getElementById('modalError');
+
+            btn.disabled = true;
+            btn.innerText = 'Verifying...';
+
+            try {
+                const res = await fetch('/auth/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tokenCode: token })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    window.location.href = pendingUrl || '/';
+                } else {
+                    error.innerText = data.error;
+                    error.style.display = 'block';
+                    btn.disabled = false;
+                    btn.innerText = 'Verify & Open';
+                }
+            } catch (err) {
+                console.error(err);
+                btn.disabled = false;
+                btn.innerText = 'Verify & Open';
+            }
+        }
+
         function toggleNode(btn, id) {
             const children = document.getElementById('children-' + id);
             children.classList.toggle('collapsed');
