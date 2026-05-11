@@ -59,10 +59,37 @@ body {
 .menu-toggle { display: none; flex-direction: column; gap: 5px; cursor: pointer; z-index: 1100; }
 .menu-toggle span { width: 22px; height: 2px; background: var(--text-primary); border-radius: 2px; transition: 0.3s; }
 
-.sort-select {
-    background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border);
-    border-radius: 8px; padding: 0.4rem 0.8rem; color: var(--text-primary);
-    font-family: inherit; font-size: 0.85rem; cursor: pointer;
+/* ─── FORM ELEMENTS (Match Reference Image) ─── */
+select {
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 12px;
+    padding: 0.5rem 2.5rem 0.5rem 1rem !important;
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    font-weight: 400;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.03) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 0.85rem center / 16px !important;
+}
+
+select:hover {
+    background-color: rgba(255, 255, 255, 0.06) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+select:focus {
+    border-color: var(--accent-primary) !important;
+}
+
+select option {
+    background-color: #0a0a0f;
+    color: #ffffff;
+    padding: 12px;
 }
 .mobile-close-btn { display: none; }
 .nav-overlay {
@@ -105,6 +132,8 @@ body {
     font-family: var(--font-heading); font-size: 1.5rem; font-weight: 700;
     margin-bottom: 1rem; display: flex; align-items: center; gap: 0.8rem;
     padding-bottom: 0.6rem;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
 }
 .subject-title::after {
     content: ''; height: 1px; flex: 1;
@@ -273,6 +302,7 @@ input:focus, select:focus, textarea:focus {
         transform: translateX(0);
         visibility: visible;
         opacity: 1;
+        pointer-events: auto; /* Allow interaction when open */
     }
     .controls-bar { width: 100%; flex-direction: column; gap: 0.6rem; }
     .sort-select { width: 100% !important; }
