@@ -42,6 +42,7 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // Middleware
+app.set('trust proxy', 1); // Trust first proxy (required for secure cookies in prod)
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static('public'));
@@ -103,9 +104,12 @@ app.get('/auth/gate', (req, res) => {
 
 app.post('/auth/gate', (req, res) => {
     const { tokenCode, returnTo } = req.body;
-    if (tokenCode === process.env.ADMIN_SECRET) {
+    if (tokenCode && tokenCode.trim() === process.env.ADMIN_SECRET) {
         req.session.isAdmin = true;
-        res.redirect(returnTo || '/');
+        req.session.save((err) => {
+            if (err) console.error('Session save error:', err);
+            res.redirect(returnTo || '/');
+        });
     } else {
         res.render('auth-gate', { 
             error: 'Invalid Token Code!',
@@ -117,9 +121,12 @@ app.post('/auth/gate', (req, res) => {
 
 app.post('/auth/verify', (req, res) => {
     const { tokenCode } = req.body;
-    if (tokenCode === process.env.ADMIN_SECRET) {
+    if (tokenCode && tokenCode.trim() === process.env.ADMIN_SECRET) {
         req.session.isAdmin = true;
-        res.json({ success: true });
+        req.session.save((err) => {
+            if (err) return res.json({ success: false, error: 'Session save failed' });
+            res.json({ success: true });
+        });
     } else {
         res.json({ success: false, error: 'Invalid Token Code!' });
     }
